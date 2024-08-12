@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Time Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="/manifest.json"> <!-- Link to the manifest.json file -->
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="content">
+            <div class="header">
+                <div class="menu-icon" id="menuIcon">
+                    <div class="bar1"></div>
+                    <div class="bar2"></div>
+                    <div class="bar3"></div>
+                </div>
+                <div class="date-time" id="dateTime">
+                    <div id="currentDate" class="bold-text"></div>
+                    <div id="currentTime" class="bold-text"></div>
+                </div>
+                <button id="addEmployeeButton" class="add-employee-button" style="display: none;">Add Employee</button>
+            </div>
+            <div id="dashboardContent">
+                <h2 class="bold-text">Employee List</h2>
+                <ul id="employees" class="employee-list"></ul>
+            </div>
+            <div id="employeeManagementContent" style="display:none;">
+                <h2 class="bold-text">Employee Management</h2>
+                <div class="employee-management">
+                    <ul id="employeeManagementList" class="employee-list"></ul>
+                </div>
+            </div>
+            <div id="overviewContent" style="display:none;">
+                <div class="overview-header">
+                    <h2 class="bold-text">Overview</h2>
+                    <div class="filter-options">
+                        <label for="employeeFilter">Employee:</label>
+                        <select id="employeeFilter"></select>
+                        <label for="timeFilter">Time Frame:</label>
+                        <select id="timeFilter">
+                            <option value="day">Day</option>
+                            <option value="week">Week</option>
+                            <option value="month">Month</option>
+                            <option value="year">Year</option>
+                        </select>
+                        <label for="dateFilter">Date:</label>
+                        <input type="date" id="dateFilter">
+                    </div>
+                </div>
+
+                <div class="week-navigation">
+                    <button id="prevWeekButton" class="week-button">← Previous Week</button>
+                    <button id="nextWeekButton" class="week-button">Next Week →</button>
+                </div>
+
+                <div id="customCalendar" class="custom-calendar"></div>
+                <div class="timesheet-container">
+                    <table id="timesheetTable">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th>Name</th>
+                                <th>Date</th>
+                                <th>Clock In</th>
+                                <th>Start Break</th>
+                                <th>End Break</th>
+                                <th>Clock Out</th>
+                                <th>Total Work Hours</th>
+                                <th>Total Break Hours</th>
+                                <th>Daily Pay</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Timesheet records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <button id="printButton" onclick="generatePayDaySheet()">Print Report</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="myNav" class="overlay">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <div class="overlay-content">
+            <a href="javascript:void(0)" onclick="showDashboard()">Dashboard</a>
+            <a href="javascript:void(0)" onclick="showEmployeeManagement()">Employee Management</a>
+            <a href="javascript:void(0)" onclick="showOverview()">Overview</a>
+        </div>
+    </div>
+
+    <div id="clockInModal" class="modal">
+        <div class="modal-content transparent-modal">
+            <div class="clock-circle pulse-animation">
+                <div class="clock-time-container">
+                    <div id="employeeName"></div>
+                    <div id="timer" class="clock-time">00:00:00</div>
+                </div>
+            </div>
+            <div class="button-container">
+                <button id="breakButton" class="clock-button break-button">Start Break</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Enter PIN to Access Overview</h3>
+            <input type="password" id="passwordInput" placeholder="PIN">
+            <button id="submitPassword" onclick="checkPassword()">Submit</button>
+        </div>
+    </div>
+
+    <div id="editEmployeeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Edit Employee</h3>
+            <label for="editEmployeeId">ID</label>
+            <input type="text" id="editEmployeeId" disabled>
+            <label for="editEmployeeName">Name</label>
+            <input type="text" id="editEmployeeName">
+            <label for="editEmployeeRole">Role</label>
+            <input type="text" id="editEmployeeRole">
+            <label for="editEmployeePayRate">Pay Rate</label>
+            <input type="number" id="editEmployeePayRate">
+            <button id="saveEmployeeChanges">Save</button>
+        </div>
+    </div>
+
+    <div id="addEmployeeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Employee</h3>
+            <label for="addEmployeeName">Name</label>
+            <input type="text" id="addEmployeeName">
+            <label for="addEmployeeId">ID</label>
+            <input type="text" id="addEmployeeId">
+            <label for="addEmployeeRole">Role</label>
+            <input type="text" id="addEmployeeRole">
+            <label for="addEmployeePayRate">Pay Rate</label>
+            <input type="number" id="addEmployeePayRate">
+            <button id="addEmployeeSubmit" onclick="addEmployee()">Add</button>
+        </div>
+    </div>
+
+    <div id="editTimesheetModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Edit Timesheet</h3>
+            <label for="editStartTime">Start Time</label>
+            <input type="time" id="editStartTime">
+            <label for="editEndTime">End Time</label>
+            <input type="time" id="editEndTime">
+            <label for="editBreakStartTime">Break Start Time</label>
+            <input type="time" id="editBreakStartTime">
+            <label for="editBreakEndTime">Break End Time</label>
+            <input type="time" id="editBreakEndTime">
+            <button id="saveTimesheetChanges" onclick="saveTimesheet()">Save</button>
+        </div>
+    </div>
+
+    <div id="detailedViewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDetailedViewModal()">&times;</span>
+            <div class="circle-container">
+                <div class="hours-circle pulse-animation">
+                    <div class="hours-text" id="detailedViewTotalHours">0.00 hours</div>
+                </div>
+            </div>
+            <div id="detailedViewEmployeeName" class="employee-name">Employee Name</div>
+            <div id="detailedViewEmployeeRole" class="employee-role">Role</div>
+            <ul id="detailedViewDaysWorked" class="days-worked">
+                <!-- Days worked entries will go here -->
+            </ul>
+            <button id="payDayButton" class="payday-button" onclick="generatePayDaySheet()">Pay Day</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script> <!-- Link to the main JavaScript file -->
+</body>
+
+</html>
