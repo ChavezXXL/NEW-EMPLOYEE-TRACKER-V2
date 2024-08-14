@@ -1,14 +1,14 @@
 // Register the service worker for PWA functionality
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(err => {
-                console.log('ServiceWorker registration failed: ', err);
-            });
-    });
+  window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          })
+          .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+          });
+  });
 }
 document.addEventListener('DOMContentLoaded', function () {
   let employees = JSON.parse(localStorage.getItem('employees')) || [];
@@ -97,12 +97,15 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   window.showOverview = function () {
+      // Sync the dateFilter with today's date before showing the overview
+      setDateToToday();
       dashboardContent.style.display = 'none';
       employeeManagementContent.style.display = 'none';
       overviewContent.style.display = 'block';
       document.getElementById('dateTime').style.display = 'none';
       addEmployeeButton.style.display = 'none';
       closeNav();
+      displayTimesheet();
   };
 
   window.showPasswordModal = function () {
@@ -302,13 +305,13 @@ document.addEventListener('DOMContentLoaded', function () {
           const li = document.createElement('li');
           li.className = 'employee-management-item';
           li.innerHTML = `
-            ${employee.name} (${employee.id})
-            <div class="employee-actions">
-                <button class="view-button" data-id="${employee.id}">View</button>
-                <button class="edit-button" data-id="${employee.id}">Edit</button>
-                <button class="delete-button" data-id="${employee.id}">Delete</button>
-            </div>
-        `;
+          ${employee.name} (${employee.id})
+          <div class="employee-actions">
+              <button class="view-button" data-id="${employee.id}">View</button>
+              <button class="edit-button" data-id="${employee.id}">Edit</button>
+              <button class="delete-button" data-id="${employee.id}">Delete</button>
+          </div>
+      `;
           employeeManagementList.appendChild(li);
       });
 
@@ -349,81 +352,100 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function showClockInModal(employee) {
-      const { id } = employee;
-      activeEmployeeId = id;
+    const { id } = employee;
+    activeEmployeeId = id;
 
-      employeeNameElement.textContent = `${employee.name} (${employee.id})`;
-      clockInModal.style.display = 'flex';
+    employeeNameElement.textContent = `${employee.name} (${employee.id})`;
+    clockInModal.style.display = 'flex';
 
-      clockCircle.classList.remove('clock-out');
-      breakButton.style.display = 'none'; // Initially hide the break button
+    // Apply the transparent background overlay
+    clockInModal.classList.add('modal-overlay');
 
-      clearInterval(currentInterval);
+    // Hide the break button initially
+    breakButton.style.display = 'none';
 
-      if (timers[id].isRunning || timers[id].isOnBreak) {
-          if (timers[id].isRunning) {
-              clockCircle.classList.add('clock-out');
-              startMainInterval(id, timerElement);
-          } else if (timers[id].isOnBreak) {
-              clockCircle.classList.add('clock-out');
-              breakButton.textContent = 'End Break';
-              startBreakInterval(id, timerElement);
-          }
-          // Make sure breakButton appears under the clock-out button
-          breakButton.style.display = 'block';
-          breakButton.style.marginTop = '20px'; // Adjust as needed for spacing
-      } else {
-          updateTimer(timerElement, timers[id].mainTime);
-      }
+    // Check if the timer is running or the employee is on a break
+    if (timers[id].isRunning || timers[id].isOnBreak) {
+        if (timers[id].isRunning) {
+            clockCircle.classList.add('clock-out');
+            startMainInterval(id, timerElement);
+        } else if (timers[id].isOnBreak) {
+            clockCircle.classList.add('clock-out');
+            breakButton.textContent = 'End Break';
+            startBreakInterval(id, timerElement);
+        }
+        breakButton.style.display = 'block';
+    } else {
+        updateTimer(timerElement, timers[id].mainTime);
+        clockCircle.classList.remove('clock-out');
+        breakButton.style.display = 'none';  // Ensure it's hidden if not running or on break
+    }
 
-      clockCircle.onclick = () => {
-          if (!timers[id].isRunning && !timers[id].isOnBreak) {
-              timers[id].startTime = Date.now();
-              timers[id].isRunning = true;
-              logTimesheet(id, 'clockin');
-              startMainInterval(id, timerElement);
-              clockCircle.classList.add('clock-out');
-              breakButton.style.display = 'block'; // Show break button when clocking in
-              breakButton.style.marginTop = '20px'; // Adjust as needed for spacing
+    clockCircle.onclick = () => {
+        if (!timers[id].isRunning && !timers[id].isOnBreak) {
+            timers[id].startTime = Date.now();
+            timers[id].isRunning = true;
+            logTimesheet(id, 'clockin');
+            startMainInterval(id, timerElement);
+            clockCircle.classList.add('clock-out');
+            breakButton.style.display = 'block';  // Show break button after clock-in
+            clockInModal.style.display = 'none';
+            resetModalState();
+        } else if (timers[id].isRunning) {
+            stopActiveEmployeeTimer(id);
+            logTimesheet(id, 'clockout');
+            resetTimer(id);
+            clockCircle.classList.remove('clock-out');
+            clockInModal.style.display = 'none';
+            updateEmployeeList();
+            displayTimesheet();
+        }
+        updateLocalStorage();
+    };
 
-              clockInModal.style.display = 'none';
-              resetModalState();
-          } else if (timers[id].isRunning) {
-              stopActiveEmployeeTimer(id);
-              logTimesheet(id, 'clockout');
-              resetTimer(id);
-              clockCircle.classList.remove('clock-out');
-              clockInModal.style.display = 'none';
-              updateEmployeeList();
-              displayTimesheet();
-          }
-          updateLocalStorage();
-      };
+    breakButton.onclick = () => {
+        if (breakButton.textContent === 'Start Break') {
+            timers[id].mainTime += Math.floor((Date.now() - timers[id].startTime) / 1000);
+            timers[id].breakStartTime = Date.now();
+            timers[id].isRunning = false;
+            timers[id].isOnBreak = true;
+            logTimesheet(id, 'startbreak');
+            breakButton.textContent = 'End Break';
+            startBreakInterval(id, timerElement);
+        } else {
+            timers[id].breakTime += Math.floor((Date.now() - timers[id].breakStartTime) / 1000);
+            timers[id].startTime = Date.now();
+            timers[id].isRunning = true;
+            timers[id].isOnBreak = false;
+            logTimesheet(id, 'endbreak');
+            breakButton.textContent = 'Start Break';
+            startMainInterval(id, timerElement);
+        }
 
-      breakButton.onclick = () => {
-          if (breakButton.textContent === 'Start Break') {
-              timers[id].mainTime += Math.floor((Date.now() - timers[id].startTime) / 1000);
-              timers[id].breakStartTime = Date.now();
-              timers[id].isRunning = false;
-              timers[id].isOnBreak = true;
-              logTimesheet(id, 'startbreak');
-              breakButton.textContent = 'End Break';
-              startBreakInterval(id, timerElement);
-          } else {
-              timers[id].breakTime += Math.floor((Date.now() - timers[id].breakStartTime) / 1000);
-              timers[id].startTime = Date.now();
-              timers[id].isRunning = true;
-              timers[id].isOnBreak = false;
-              logTimesheet(id, 'endbreak');
-              breakButton.textContent = 'Start Break';
-              startMainInterval(id, timerElement);
-          }
+        clockInModal.style.display = 'none';
+        resetModalState();
+        updateLocalStorage();
+    };
+}
 
-          clockInModal.style.display = 'none';
-          resetModalState();
-          updateLocalStorage();
-      };
-  }
+function resetModalState() {
+    clearInterval(currentInterval);
+    updateTimer(timerElement, 0);
+    clockCircle.classList.remove('clock-out');
+    breakButton.style.display = 'none';
+    breakButton.textContent = 'Start Break';
+    clockInModal.classList.remove('modal-overlay');
+}
+
+// Call this function to hide the "Start Break" button initially
+function hideBreakButtonInitially() {
+    breakButton.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    hideBreakButtonInitially();
+    // Other initialization code...
+});
 
   function resetModalState() {
       clearInterval(currentInterval);
@@ -431,6 +453,9 @@ document.addEventListener('DOMContentLoaded', function () {
       clockCircle.classList.remove('clock-out');
       breakButton.style.display = 'none';
       breakButton.textContent = 'Start Break';
+      
+      // Remove transparent background class
+      clockInModal.classList.remove('modal-overlay');
   }
 
   function startMainInterval(id, timerElement) {
@@ -522,18 +547,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
           const row = document.createElement('tr');
           row.innerHTML = `
-              <td>${employee.role}</td>
-              <td>${employee.name}</td>
-              <td>${selectedDate.toDateString()}</td>
-              <td class="editable" data-type="clockin" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'clockin')?.timestamp)}</td>
-              <td class="editable" data-type="startbreak" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'startbreak')?.timestamp)}</td>
-              <td class="editable" data-type="endbreak" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'endbreak')?.timestamp)}</td>
-              <td class="editable" data-type="clockout" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'clockout')?.timestamp)}</td>
-              <td>${payableWorkHours.toFixed(2)}</td> <!-- Display total payable work hours -->
-              <td>${totalBreakHours.toFixed(2)}</td> <!-- Display total break hours -->
-              <td>${dailyPay}</td> <!-- Display daily pay -->
-              <td><button class="delete-timesheet-button" data-id="${employee.id}" data-date="${selectedDate.toISOString()}">Delete</button></td>
-          `;
+            <td>${employee.role}</td>
+            <td>${employee.name}</td>
+            <td>${selectedDate.toDateString()}</td>
+            <td class="editable" data-type="clockin" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'clockin')?.timestamp)}</td>
+            <td class="editable" data-type="startbreak" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'startbreak')?.timestamp)}</td>
+            <td class="editable" data-type="endbreak" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'endbreak')?.timestamp)}</td>
+            <td class="editable" data-type="clockout" data-id="${employee.id}">${formatTime(timesheet.find(entry => entry.type === 'clockout')?.timestamp)}</td>
+            <td>${payableWorkHours.toFixed(2)}</td> <!-- Display total payable work hours -->
+            <td>${totalBreakHours.toFixed(2)}</td> <!-- Display total break hours -->
+            <td>${dailyPay}</td> <!-- Display daily pay -->
+            <td><button class="delete-timesheet-button" data-id="${employee.id}" data-date="${selectedDate.toISOString()}">Delete</button></td>
+        `;
           timesheetTableBody.appendChild(row);
       });
 
@@ -653,9 +678,9 @@ document.addEventListener('DOMContentLoaded', function () {
           const dayElement = document.createElement('div');
           dayElement.className = 'day';
           dayElement.innerHTML = `
-          ${dayOfWeek} <div class="date">${day}</div>
-          <div class="dot"></div>
-      `;
+        ${dayOfWeek} <div class="date">${day}</div>
+        <div class="dot"></div>
+    `;
 
           if (dayDate.toDateString() === today.toDateString()) {
               dayElement.classList.add('active');
@@ -678,54 +703,55 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function showDetailedView(employeeId) {
-      const employee = employees.find(emp => emp.id === employeeId);
-      const employeeTimesheet = timesheets[employeeId] || [];
-      let totalHours = 0;
-      const daysWorked = {};
-
-      employeeTimesheet.forEach(entry => {
-          const date = new Date(entry.timestamp).toDateString();
-          if (!daysWorked[date]) {
-              daysWorked[date] = {
-                  clockin: null,
-                  clockout: null,
-                  startbreak: null,
-                  endbreak: null
-              };
-          }
-          daysWorked[date][entry.type] = entry.timestamp;
-      });
-
-      for (const date in daysWorked) {
-          const day = daysWorked[date];
-          if (day.clockin && day.clockout) {
-              totalHours += (day.clockout - day.clockin) / 3600000;
-          }
+    const employee = employees.find(emp => emp.id === employeeId);
+    const employeeTimesheet = timesheets[employeeId] || [];
+    let totalHours = 0;
+    const daysWorked = {};
+  
+    // Set the range for the current week
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6:1); // adjust when day is Sunday
+    const startOfWeek = new Date(today.setDate(diff));
+    const endOfWeek = new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000); // add 6 days to the start
+  
+    employeeTimesheet.forEach(entry => {
+      const entryDate = new Date(entry.timestamp);
+      if (entryDate >= startOfWeek && entryDate <= endOfWeek) {
+        const date = entryDate.toDateString();
+        if (!daysWorked[date]) {
+            daysWorked[date] = {
+                clockin: null,
+                clockout: null,
+                startbreak: null,
+                endbreak: null
+            };
+        }
+        daysWorked[date][entry.type] = entry.timestamp;
       }
-
-      const detailedViewEmployeeName = document.getElementById('detailedViewEmployeeName');
-      const detailedViewEmployeeRole = document.getElementById('detailedViewEmployeeRole');
-      const detailedViewTotalHours = document.getElementById('detailedViewTotalHours');
-      const detailedViewDaysWorked = document.getElementById('detailedViewDaysWorked');
-
-      detailedViewEmployeeName.textContent = `${employee.name} (${employee.id})`;
-      detailedViewEmployeeRole.textContent = employee.role;
-      detailedViewTotalHours.textContent = `${totalHours.toFixed(2)} hours`;
-      detailedViewDaysWorked.innerHTML = '';
-
-      for (const date in daysWorked) {
-          const day = daysWorked[date];
-          const listItem = document.createElement('li');
-          listItem.innerHTML = `<strong>${date}:</strong><br> 
-      Clock In: ${formatTime(day.clockin)}<br> 
-      Start Break: ${formatTime(day.startbreak)}<br> 
-      End Break: ${formatTime(day.endbreak)}<br> 
+    });
+  
+    const detailedViewDaysWorked = document.getElementById('detailedViewDaysWorked');
+    detailedViewDaysWorked.innerHTML = '';
+  
+    for (const date in daysWorked) {
+        const day = daysWorked[date];
+        const listItem = document.createElement('li');
+        listItem.innerHTML = `<strong>${date}:</strong><br>
+      Clock In: ${formatTime(day.clockin)}<br>
+      Start Break: ${formatTime(day.startbreak)}<br>
+      End Break: ${formatTime(day.endbreak)}<br>
       Clock Out: ${formatTime(day.clockout)}`;
-          detailedViewDaysWorked.appendChild(listItem);
-      }
-
-      document.getElementById('detailedViewModal').style.display = 'flex';
+        detailedViewDaysWorked.appendChild(listItem);
+    }
+  
+    document.getElementById('detailedViewModal').style.display = 'flex';
   }
+  
+  function formatTime(timestamp) {
+    return timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  }
+  
 
   function closeDetailedViewModal() {
       document.getElementById('detailedViewModal').style.display = 'none';
@@ -736,13 +762,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const employee = employees.find(emp => emp.id === employeeId);
       if (!employee) return;
 
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
-      const startOfWeek = new Date(now.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))); // Last Monday
+      // Use the selected date from the date filter to determine the week
+      const selectedDate = new Date(dateFilter.value);
+      const dayOfWeek = selectedDate.getDay(); // 0 is Sunday, 1 is Monday, etc.
+      
+      // Calculate the start (Monday) and end (Sunday) of the selected week
+      const startOfWeek = new Date(selectedDate);
+      startOfWeek.setDate(selectedDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Adjust to Monday
       startOfWeek.setHours(0, 0, 0, 0); // Set to start of the day
 
       const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6); // Next Sunday
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End on Sunday
       endOfWeek.setHours(23, 59, 59, 999); // Set to end of the day
 
       const timesheet = (timesheets[employee.id] || []).filter(entry => {
@@ -797,14 +827,16 @@ document.addEventListener('DOMContentLoaded', function () {
       const printWindow = window.open('', '_blank');
       printWindow.document.write('<html><head><title>Payday Sheet</title><style>');
       printWindow.document.write(`
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h2, h3 { margin-bottom: 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .totals-row td { font-weight: bold; }
-    `);
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h2, h3 { margin-bottom: 0; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      th, td { padding: 10px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      tr:nth-child(even) { background-color: #f9f9f9; }
+      .totals-row td { font-weight: bold; }
+      .close-button { background-color: #f44336; color: white; padding: 10px 15px; border: none; cursor: pointer; }
+      .close-button:hover { background-color: #d32f2f; }
+      `);
       printWindow.document.write('</style></head><body>');
       printWindow.document.write(`<h2>Payday Sheet for ${employee.name} (${employee.id})</h2>`);
       printWindow.document.write(`<p><strong>Week:</strong> ${startOfWeek.toDateString()} - ${endOfWeek.toDateString()}</p>`);
@@ -824,8 +856,9 @@ document.addEventListener('DOMContentLoaded', function () {
       printWindow.document.write('<tbody>');
       printWindow.document.write(`<tr class="totals-row"><td>Total Work Hours:</td><td colspan="4">${totalWorkHours.toFixed(2)} hours</td></tr>`);
       printWindow.document.write(`<tr class="totals-row"><td>Total Break Hours:</td><td colspan="4">${totalBreakHours.toFixed(2)} hours</td></tr>`);
-      printWindow.document.write(`<tr class="totals-row"><td>Total Pay:</td><td colspan="4">$${totalPay.toFixed(2)}</td></tr>`);
+      printWindow.document.write(`<tr class="totals-row"><td Total Pay:</td><td colspan="4">$${totalPay.toFixed(2)}</td></tr>`);
       printWindow.document.write('</tbody></table>');
+      printWindow.document.write('<button class="close-button" onclick="window.close()">Close</button>');
       printWindow.document.write('</body></html>');
 
       printWindow.document.close();
@@ -844,6 +877,17 @@ document.addEventListener('DOMContentLoaded', function () {
       changeDate(7);
   });
 
+  if (printButton) {
+      printButton.addEventListener('click', generatePayDaySheet);
+  }
+
+  function setDateToToday() {
+      const today = new Date();
+      dateFilter.value = today.toISOString().split('T')[0];
+  }
+
+  // Set initial date to today and update time every second
+  setDateToToday();
   updateEmployeeList();
   updateEmployeeManagementList();
   updateEmployeeFilter();
@@ -863,7 +907,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   setInterval(updateLocalStorage, 1000);
   setInterval(updateDateTime, 1000);
-  dateFilter.value = new Date().toISOString().split('T')[0];
+  setInterval(setDateToToday, 3600000); // Check and update the date every hour
+
   displayTimesheet();
   updateCalendar();
   updateDateTime();
