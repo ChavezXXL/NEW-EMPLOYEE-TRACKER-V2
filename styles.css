@@ -76,7 +76,7 @@ h2.bold-text {
 .employee-actions {
   display: flex;
   gap: 10px;
-  margin-left: auto; /* Push buttons to the right */
+  margin-left: auto;
 }
 
 .employee-actions button {
@@ -215,7 +215,7 @@ h2.bold-text {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7); /* More transparent overlay */
+  background-color: rgba(0, 0, 0, 0.7);
   z-index: 1000;
 }
 
@@ -239,7 +239,7 @@ h2.bold-text {
   right: 20px;
   font-size: 30px;
   cursor: pointer;
-  color: #fff; /* Change close button color to white for visibility */
+  color: #fff;
 }
 
 .close:hover {
@@ -278,14 +278,18 @@ h2.bold-text {
 /* Overview Section Styles */
 #overviewContent {
   width: 100%;
+  padding-top: 20px; /* Add some padding at the top */
+  margin-top: 10px; /* Adjust margin to raise the section */
 }
 
+/* Increase font size for overview headers and content */
 .overview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   margin-bottom: 20px;
+  font-size: 20px; /* Increase the font size */
 }
 
 .filter-options {
@@ -293,24 +297,28 @@ h2.bold-text {
   gap: 10px;
   align-items: center;
   font-weight: bold;
+  font-size: 18px; /* Increase font size for filter labels */
+  margin-bottom: 10px; /* Add margin below the filters */
 }
 
 .filter-options label {
-  font-size: 16px;
+  font-size: 18px; /* Increase font size for labels */
   color: #333;
 }
 
 .filter-options select,
 .filter-options input[type="date"] {
-  padding: 10px;
-  font-size: 16px;
+  padding: 12px; /* Increase padding for filter inputs */
+  font-size: 18px; /* Increase font size for filter inputs */
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
+/* Adjust the overall padding and font size for better alignment */
 .timesheet-container {
   width: 100%;
   overflow-x: auto;
+  margin-top: 10px; /* Slight adjustment to raise the timesheet table */
 }
 
 #timesheetTable {
@@ -321,57 +329,16 @@ h2.bold-text {
 
 #timesheetTable th,
 #timesheetTable td {
-  padding: 8px;
+  padding: 12px;
   text-align: left;
   border: 1px solid black;
+  font-size: 16px; /* Slight increase in table text size */
 }
 
 #timesheetTable th {
   background-color: #007aff;
   color: white;
-}
-
-#timesheetTable td {
-  background-color: #f8f9fa;
-}
-
-#timesheetTable tr {
-  border: 1px solid black;
-}
-
-#timesheetTable tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.edit-button {
-  background-color: #007aff;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.edit-button:hover {
-  background-color: #005bb5;
-}
-
-#printButton {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  background-color: #007aff;
-  color: white;
-  transition: background-color 0.3s;
-  align-self: flex-start;
-  margin-top: 20px;
-}
-
-#printButton:hover {
-  background-color: #005bb5;
+  font-size: 18px; /* Increase font size for table headers */
 }
 
 /* Calendar View Styles */
@@ -425,7 +392,7 @@ h2.bold-text {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* Stronger shadow for better depth */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   margin: 20px auto;
   cursor: pointer;
   transition: background-color 0.3s, transform 0.3s;
@@ -450,7 +417,7 @@ h2.bold-text {
 .clock-time {
   font-size: 48px;
   font-weight: bold;
-  margin-top: 10px; /* Space above the timer text */
+  margin-top: 10px;
 }
 
 /* Redesigned Button Styles */
@@ -471,41 +438,52 @@ h2.bold-text {
   background-color: #007aff;
   color: white;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for better depth */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .clock-button:hover {
   background-color: #005bb5;
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow on hover */
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
 }
 
 .clock-button:active {
-  transform: translateY(2px); /* Button moves down slightly when clicked */
+  transform: translateY(2px);
 }
 
 .break-button {
   background-color: #ffc107;
   border: 1px solid white;
-  border-radius: 50%; /* Makes the button circular */
-  width: 150px; /* Diameter of the button */
+  border-radius: 50%;
+  width: 150px;
   height: 150px;
   font-size: 16px;
-  display: flex;
+  color: #fff;
+  display: none;
   justify-content: center;
   align-items: center;
   text-align: center;
   line-height: normal;
-  transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out; /* Smooth background transition */
+  transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Show the break button when the .show class is added */
+.break-button.show {
+  display: flex;
 }
 
 .break-button:hover {
   background-color: #e0a800;
-  transform: scale(1.05); /* Slight zoom effect on hover */
+  transform: scale(1.05);
 }
 
 .break-button:active {
-  transform: translateY(2px); /* Button moves down slightly when clicked */
+  transform: translateY(2px);
+}
+
+/* Higher specificity for button elements if needed */
+button.break-button.show {
+  display: flex !important;
 }
 
 /* Pulse Animation */
@@ -602,12 +580,13 @@ h2.bold-text {
   border-radius: 10px;
   text-align: center;
   position: relative;
-  max-width: 600px; /* Increased max-width */
+  max-width: 600px;
   width: 90%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .hours-circle {
-  width: 120px; /* Increased circle size */
+  width: 120px;
   height: 120px;
   background-color: #007aff;
   color: white;
@@ -616,15 +595,15 @@ h2.bold-text {
   align-items: center;
   border-radius: 50%;
   margin: 0 auto 20px;
-}
-
-.hours-text {
-  font-size: 28px; /* Increased text size */
+  font-size: 28px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .employee-name {
   font-size: 22px;
   font-weight: bold;
+  color: #333;
   margin-bottom: 10px;
 }
 
@@ -640,11 +619,30 @@ h2.bold-text {
   margin: 0 0 20px 0;
   font-size: 16px;
   text-align: left;
+  line-height: 1.6;
 }
 
 .days-worked li {
   margin-bottom: 10px;
-  line-height: 1.6;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.days-worked li:last-child {
+  border-bottom: none;
+}
+
+.modal-content .close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+}
+
+.modal-content .close:hover {
+  color: #999;
 }
 
 .payday-button {
@@ -662,10 +660,215 @@ h2.bold-text {
   background-color: #005bb5;
 }
 
+/* Improved Layout for Detailed View */
+.employee-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hours-circle {
+  margin-bottom: 10px;
+}
+
+.employee-name {
+  margin-bottom: 5px;
+}
+
+.days-worked li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px; /* Smaller font size for the dates */
+  padding: 8px 0;
+}
+
+.days-worked li strong {
+  font-weight: bold;
+  color: #333;
+}
+
+.days-worked li span {
+  color: #666;
+  font-size: 12px;
+}
+
+/* General Modal Styles */
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay */
+  z-index: 1000;
+}
+
+/* Solid Background for Default Modals */
+.modal .modal-content {
+  background-color: white; /* Solid white background */
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+/* Specific Transparent Modal for Clock In/Out */
+#clockInModal .modal-content {
+  background-color: transparent; /* Transparent background for Clock In/Out modal */
+}
+
+/* Close Button */
+.close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.close:hover {
+  color: #ccc;
+}
+
+/* Pulse Animation */
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(0, 122, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 122, 255, 0);
+  }
+}
+
+/* Calendar View Styles */
+.custom-calendar {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  padding: 0 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-calendar .day {
+  flex: 0 0 14%;
+  text-align: center;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  padding: 10px 0;
+}
+
+.custom-calendar .day .date {
+  display: block;
+  font-size: 24px;
+  margin-top: 5px;
+}
+
+.custom-calendar .day.active {
+  color: #007aff;
+  font-weight: bold;
+  border-bottom: 2px solid #007aff;
+}
+
+.custom-calendar .day .dot {
+  display: block;
+  height: 8px;
+  width: 8px;
+  background-color: #007aff;
+  border-radius: 50%;
+  margin: 5px auto 0;
+}
+
+/* Password Modal Styles */
+#passwordModal .modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+#passwordModal input[type="password"] {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: calc(100% - 20px);
+  margin-bottom: 15px;
+}
+
+#passwordModal button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #007aff;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+#passwordModal button:hover {
+  background-color: #005bb5;
+}
+
+/* Edit Timesheet Modal Styles */
+#editTimesheetModal .modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+#editTimesheetModal input[type="time"] {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: calc(100% - 20px);
+  margin-bottom: 15px;
+}
+
+#editTimesheetModal button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #007aff;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+#editTimesheetModal button:hover {
+  background-color: #005bb5;
+}
+
 /* Add Employee Button */
 .add-employee-button {
-  padding: 20px 40px; /* Increased padding */
-  font-size: 20px; /* Increased font size */
+  padding: 20px 40px;
+  font-size: 20px;
   background-color: #007aff;
   color: white;
   border: none;
@@ -678,349 +881,104 @@ h2.bold-text {
   background-color: #005bb5;
 }
 
-@media print {
-  body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      color: #333;
-  }
-  
-  h2, h3 {
-      margin-top: 0;
-      color: #333;
-  }
-
-  table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-  }
-
-  th, td {
-      padding: 10px;
-      border: 1px solid #000;
-      text-align: left;
-  }
-
-  th {
-      background-color: #f2f2f2;
-  }
-
-  .total {
-      font-weight: bold;
-  }
-  
-  /* Hide any elements you don't want to appear in the print version */
-  .no-print {
-      display: none !important;
-  }
+/* Improved Layout for Detailed View */
+.employee-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-@media print {
-  /* Style for payday sheet header */
-  h2 {
-      font-size: 24px;
-      color: #2c3e50;
-  }
-
-  h3 {
-      font-size: 18px;
-      color: #16a085;
-  }
-
-  /* Styling for the table */
-  table {
-      border: 2px solid #3498db;
-      background-color: #ecf0f1;
-  }
-
-  th {
-      background-color: #2980b9;
-      color: #fff;
-  }
-
-  td {
-      background-color: #ffffff;
-  }
-
-  /* Emphasize totals */
-  .total {
-      font-weight: bold;
-      background-color: #f39c12;
-      color: #fff;
-  }
+.hours-circle {
+  margin-bottom: 10px;
 }
 
-/* Increase the font size for employee names */
-.employee-list li {
-  font-size: 28px; /* Increase font size from 24px to 28px */
-  padding: 25px; /* Increase padding from 20px to 25px */
+.employee-name {
+  margin-bottom: 5px;
 }
 
-/* Increase the size of employee actions buttons */
-.employee-actions button {
-  font-size: 18px; /* Increase font size from 16px to 18px */
-  padding: 15px 25px; /* Increase padding */
-}
-
-/* Make the content boxes larger */
-.content {
-  padding: 60px; /* Increase padding inside the content box */
-  width: 90%; /* Increase the width of the content area */
-}
-
-/* Increase the size of the header */
-.header {
-  font-size: 24px; /* Increase the font size in the header */
-  padding: 20px; /* Increase padding */
-}
-
-/* Increase the font size and padding of the employee management list */
-.employee-management-item {
-  font-size: 28px; /* Increase font size from 24px to 28px */
-  padding: 25px; /* Increase padding */
-}
-
-/* Ensure the calendar does not overflow */
-.custom-calendar {
+.days-worked li {
   display: flex;
   justify-content: space-between;
-  margin: 20px 0;
-  padding: 0 10px;
-  overflow-x: hidden; /* Hide horizontal scroll */
-  width: 100%; /* Ensure it fits within the container */
-  box-sizing: border-box; /* Include padding and borders in width calculation */
+  align-items: center;
+  font-size: 12px; /* Smaller font size for the dates */
+  padding: 8px 0;
 }
 
-/* Adjust the table to prevent overflow */
-.timesheet-container {
-  width: 100%;
-  overflow-x: hidden; /* Hide horizontal scroll */
-}
-
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: fixed; /* Make sure the table fits within its container */
-}
-
-#timesheetTable th, #timesheetTable td {
-  padding: 8px;
-  text-align: left;
-  border: 1px solid black;
-  word-wrap: break-word; /* Ensure content wraps within the cell */
-}
-
-/* Remove margin and padding that might cause overflow */
-body, html {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden; /* Ensure no horizontal scroll on the entire page */
-}
-
-/* For smaller screens, make the elements responsive */
-@media screen and (max-width: 768px) {
-  #timesheetTable th, #timesheetTable td {
-    font-size: 14px;
-    padding: 6px;
-  }
-
-  .custom-calendar .day {
-    font-size: 14px;
-  }
-}
-
-/* Timesheet Table - Ensure it fits within the container */
-.timesheet-container {
-  width: 100%;
-  overflow-x: hidden; /* Hide horizontal scroll */
-  box-sizing: border-box; /* Include padding and borders in the width */
-}
-
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: fixed; /* Ensure the table fits within its container */
-}
-
-#timesheetTable th, #timesheetTable td {
-  padding: 8px;
-  text-align: left;
-  border: 1px solid black;
-  word-wrap: break-word; /* Ensure content wraps within the cell */
-}
-
-#timesheetTable th {
-  background-color: #007aff;
-  color: white;
-}
-
-#timesheetTable td {
-  background-color: #f8f9fa;
-}
-
-/* Make the table more responsive */
-@media screen and (max-width: 1024px) {
-  #timesheetTable th, #timesheetTable td {
-    font-size: 14px;
-    padding: 6px;
-  }
-}
-
-#timesheetTable th:nth-child(1), 
-#timesheetTable td:nth-child(1) {
-  width: 10%; /* Adjust width as necessary */
-}
-
-#timesheetTable th:nth-child(2), 
-#timesheetTable td:nth-child(2) {
-  width: 20%; /* Adjust width as necessary */
-}
-
-/* Adjust other columns similarly if needed */
-
-/* Table Styling Enhancements */
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: fixed;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for table */
-}
-
-#timesheetTable th, #timesheetTable td {
-  padding: 12px; /* Increased padding */
-  text-align: left;
-  border: 1px solid #ddd; /* Light gray border */
-}
-
-#timesheetTable th {
-  background-color: #007aff; /* Blue header */
-  color: white;
-  font-weight: bold; /* Bold headers */
-}
-
-#timesheetTable td {
-  background-color: #f9f9f9; /* Light gray background for cells */
-}
-
-/* Alternate Row Colors */
-#timesheetTable tr:nth-child(even) {
-  background-color: #f2f2f2; /* Even rows get a different color */
-}
-
-/* Add subtle hover effect on table rows */
-#timesheetTable tr:hover {
-  background-color: #e9e9e9;
-}
-
-/* Button Styling */
-button {
-  background-color: #007aff;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-button:hover {
-  background-color: #005bb5;
-}
-
-/* Overview Header Styling */
-h2.bold-text {
+.days-worked li strong {
+  font-weight: bold;
   color: #333;
-  font-size: 30px;
-  font-weight: bold;
-  margin-bottom: 20px;
+}
+
+.days-worked li span {
+  color: #666;
+  font-size: 12px;
+}
+
+/* Add Employee Modal and Timesheet Modal */
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+}
+
+/* Solid Background for Default Modals */
+.modal .modal-content {
+  background-color: white; /* Solid white background */
+  padding: 20px;
+  border-radius: 10px;
   text-align: center;
-  border-bottom: 2px solid #ddd; /* Underline with a border */
-  padding-bottom: 10px;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
 }
 
-/* Slightly off-white background for the entire dashboard */
-body, html {
-  background-color: #f7f7f7;
-  font-family: Arial, sans-serif;
+/* Specific Transparent Modal for Clock In/Out */
+#clockInModal .modal-content {
+  background-color: transparent; /* Transparent background for Clock In/Out modal */
 }
 
-/* General responsive layout */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background-color: #f7f7f7;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+/* Close Button */
+.close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  cursor: pointer;
+  color: #fff;
 }
 
-/* Make the content container responsive */
-.content {
-  padding: 5%;
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 1200px; /* Limit max width for large screens */
-  margin: 20px auto; /* Center the content */
-  overflow-x: auto;
+.close:hover {
+  color: #ccc;
 }
 
-/* Adjust the table for smaller screens */
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: auto; /* Allows columns to adjust width automatically */
-}
-
-#timesheetTable th, #timesheetTable td {
-  padding: 12px;
-  text-align: left;
-  border: 1px solid #ddd;
-  word-wrap: break-word; /* Ensure content wraps within the cell */
-}
-
-#timesheetTable th {
-  background-color: #007aff;
-  color: white;
-  font-weight: bold;
-}
-
-#timesheetTable td {
-  background-color: #f8f9fa;
-}
-
-/* Media Queries for Different Screen Sizes */
-
-/* For tablets and smaller desktops */
-@media screen and (max-width: 1024px) {
-  .content {
-    padding: 3%;
-  }
-
-  #timesheetTable th, #timesheetTable td {
-    font-size: 14px; /* Adjust font size */
-    padding: 10px;
-  }
-
-  button {
-    font-size: 14px; /* Adjust button size */
-    padding: 8px 16px;
+/* Responsive Adjustments */
+@media only screen and (max-device-width: 768px) and (orientation: landscape) {
+  .modal {
+      width: 80%;
   }
 }
 
-/* For mobile devices */
+@media only screen and (max-device-width: 768px) and (orientation: portrait) {
+  .modal {
+      width: 95%;
+  }
+}
+
 @media screen and (max-width: 768px) {
   .content {
     padding: 2%;
   }
 
   #timesheetTable th, #timesheetTable td {
-    font-size: 12px; /* Smaller font size for mobile */
+    font-size: 12px;
     padding: 8px;
   }
 
@@ -1029,7 +987,6 @@ body, html {
     padding: 6px 12px;
   }
 
-  /* Stack the table columns vertically on small screens */
   #timesheetTable {
     display: block;
   }
@@ -1044,7 +1001,7 @@ body, html {
   #timesheetTable th, #timesheetTable td {
     display: block;
     width: 100%;
-    text-align: right; /* Align text to the right */
+    text-align: right;
   }
 
   #timesheetTable th::before, #timesheetTable td::before {
@@ -1055,15 +1012,302 @@ body, html {
   }
 
   #timesheetTable td:last-child {
-    text-align: center; /* Center align the delete button */
+    text-align: center;
   }
 }
 
-/* Example styling for the week navigation buttons */
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 3%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  th {
+    display: block;
+    text-align: center;
+  }
+
+  tr {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  td {
+    display: block;
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    padding-left: 10px;
+    font-weight: bold;
+    text-align: left;
+  }
+}
+
+.employee-list li {
+  font-size: 28px;
+  padding: 25px;
+}
+
+.employee-actions button {
+  font-size: 18px;
+  padding: 15px 25px;
+}
+
+.content {
+  padding: 60px;
+  width: 90%;
+}
+
+.header {
+  font-size: 24px;
+  padding: 20px;
+}
+
+.employee-management-item {
+  font-size: 28px;
+  padding: 25px;
+}
+
+.timesheet-container {
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: fixed;
+  overflow-x: hidden;
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid black;
+  word-wrap: break-word;
+}
+
+#timesheetTable th {
+  background-color: #007aff;
+  color: white;
+}
+
+@media screen and (max-width: 1024px) {
+  #timesheetTable th, #timesheetTable td {
+    font-size: 14px;
+    padding: 6px;
+  }
+}
+
+#timesheetTable th:nth-child(1), 
+#timesheetTable td:nth-child(1) {
+  width: 10%;
+}
+
+#timesheetTable th:nth-child(2), 
+#timesheetTable td:nth-child(2) {
+  width: 20%;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: fixed;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+#timesheetTable th {
+  background-color: #007aff;
+  color: white;
+  font-weight: bold;
+}
+
+#timesheetTable td {
+  background-color: #f9f9fa;
+}
+
+#timesheetTable tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+#timesheetTable tr:hover {
+  background-color: #e9e9e9;
+}
+
+button {
+  background-color: #007aff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #005bb5;
+}
+
+h2.bold-text {
+  color: #333;
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 10px;
+}
+
+body, html {
+  background-color: #f7f7f7;
+  font-family: Arial, sans-serif;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f7f7f7;
+  overflow-x: hidden;
+}
+
+.content {
+  padding: 5%;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  overflow-x: auto;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: auto;
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  word-wrap: break-word;
+}
+
+#timesheetTable th {
+  background-color: #007aff;
+  color: white;
+  font-weight: bold;
+}
+
+#timesheetTable td {
+  background-color: #f8f9fa;
+}
+
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 3%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .content {
+    padding: 2%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  #timesheetTable {
+    display: block;
+  }
+
+  #timesheetTable tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    display: block;
+    width: 100%;
+    text-align: right;
+  }
+
+  #timesheetTable th::before, #timesheetTable td::before {
+    content: attr(data-label);
+    float: left;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  #timesheetTable td:last-child {
+    text-align: center;
+  }
+}
+
 .week-navigation {
   display: flex;
-  justify-content: space-between; /* Space the buttons apart */
-  margin-bottom: 20px; /* Add some space below the buttons */
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
 .week-navigation button {
@@ -1114,7 +1358,7 @@ table#timesheetTable td {
 .timesheet-container {
   display: flex;
   flex-direction: column;
-  overflow-x: auto; /* Allow horizontal scrolling on small screens */
+  overflow-x: auto;
 }
 
 .employee-list {
@@ -1123,7 +1367,6 @@ table#timesheetTable td {
   justify-content: space-around;
 }
 
-/* Make the table responsive */
 .timesheet-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1138,7 +1381,7 @@ table {
 th, td {
   padding: 8px 12px;
   text-align: left;
-  white-space: nowrap; /* Prevent text from wrapping */
+  white-space: nowrap;
 }
 
 th {
@@ -1149,7 +1392,6 @@ th {
 }
 
 @media (max-width: 600px) {
-  /* Force table to scroll on smaller screens */
   table {
       display: block;
       overflow-x: auto;
@@ -1157,7 +1399,7 @@ th {
   }
 
   th, td {
-      font-size: 12px; /* Adjust font size for smaller screens */
+      font-size: 12px;
       padding: 6px 8px;
   }
 
@@ -1238,7 +1480,6 @@ body {
   font-weight: bold;
 }
 
-/* Responsive Table */
 .timesheet-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1263,7 +1504,6 @@ th {
 }
 
 @media (max-width: 768px) {
-  /* Stack header elements on top of each other */
   .header {
       flex-direction: column;
       align-items: flex-start;
@@ -1306,7 +1546,6 @@ th {
 }
 
 @media (max-width: 600px) {
-  /* Reduce padding and font sizes for small screens */
   th, td {
       padding: 6px 8px;
   }
@@ -1315,30 +1554,29 @@ th {
       padding-left: 8px;
   }
 }
-/* Adjust the content container to occupy more space */
+
 .content {
   padding: 20px;
   background-color: #fff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  width: 95%; /* Increase the width to occupy more space */
-  max-width: 100%; /* Remove the max-width constraint */
-  margin: 20px auto; /* Center the content with minimal margins */
+  width: 95%;
+  max-width: 100%;
+  margin: 20px auto;
   overflow-x: auto;
 }
 
-/* Adjust the app container to ensure it fills the screen */
 .app-container {
   display: flex;
   flex: 1;
   width: 100%;
   justify-content: center;
-  padding: 0 10px; /* Add a small padding to ensure content isn't flush against the edges */
+  padding: 0 10px;
 }
 
 .header {
   width: 100%;
-  max-width: 100%; /* Ensure header is also adjusted */
+  max-width: 100%;
   margin-bottom: 20px;
 }
 
@@ -1347,160 +1585,11 @@ th {
   overflow-x: auto;
 }
 
-/* Adjust the table width to ensure it fits within the new content width */
 #timesheetTable {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
-  table-layout: auto; /* Allows columns to adjust width automatically */
-}
-
-#timesheetTable th, #timesheetTable td {
-  padding: 12px;
-  text-align: left;
-  border: 1px solid #ddd;
-  word-wrap: break-word; /* Ensure content wraps within the cell */
-}
-
-/* Ensure the custom calendar does not overflow */
-.custom-calendar {
-  display: flex;
-  justify-content: space-between;
-  margin: 20px 10;
-  padding: 0 100px;
-  overflow-x: hidden; /* Hide horizontal scroll */
-  width: 100%; /* Ensure it fits within the container */
-  box-sizing: border-box; /* Include padding and borders in width calculation */
-}
-
-@media screen and (max-width: 1024px) {
-  .content {
-    padding: 10px;
-    width: 95%; /* Adjust to fit within smaller screens */
-    max-width: 100%;
-  }
-
-  .header {
-    padding: 10px;
-    width: 95%; /* Ensure header is adjusted for smaller screens */
-  }
-}
-/* Apply box-sizing to all elements */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-/* Adjust content width and padding to prevent overflow */
-.content {
-  padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  width: 95%; /* Increase width to occupy more space */
-  max-width: 100%; /* Ensure it fits within the container */
-  margin: 20px auto;
-  overflow-x: hidden; /* Prevent horizontal overflow */
-}
-
-/* Ensure tables and other elements fit within the container */
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  table-layout: fixed; /* Fixed layout to prevent overflow */
-  overflow-x: hidden; /* Prevent horizontal overflow */
-}
-
-.timesheet-container {
-  overflow-x: hidden; /* Prevent horizontal overflow */
-}
-
-/* Hide scrollbar for WebKit browsers (e.g., Chrome, Safari) */
-.timesheet-container::-webkit-scrollbar {
-  display: none;
-}
-
-/* Hide scrollbar for IE, Edge, and Firefox */
-.timesheet-container {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-/* Apply the same for the main content if necessary */
-.content::-webkit-scrollbar {
-  display: none;
-}
-
-.content {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-/* Reset all padding and margins globally */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* Ensure body and html take up the full height and width of the viewport */
-html, body {
-  height: 100%;
-  width: 100%;
-  overflow: hidden; /* Prevent any scrolling */
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* Full-screen container */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* Full height of the viewport */
-  width: 100vw;  /* Full width of the viewport */
-  background-color: #f0f2f5;
-  padding: 0;
-  margin: 0;
-}
-
-/* Full-width content area */
-.content {
-  flex: 1; /* Expand to fill available space */
-  width: 100vw; /* Ensure full width */
-  max-width: 100vw; /* Ensure it does not exceed the full width */
-  background-color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow-y: auto; /* Allow vertical scrolling if necessary */
-  padding-top: 70px; /* Add padding at the top to account for the header height */
-}
-
-/* Header spans the full width and aligns to the top */
-.header {
-  width: 100vw; /* Full width of the viewport */
-  background-color: #007bff;
-  color: white;
-  text-align: center;
-  padding: 0px 0; /* Adjust padding as needed */
-  position: fixed; /* Fix to the top */
-  top: 0;
-  left: 0;
-  z-index: 1000; /* Ensure it stays above other content */
-}
-
-/* Full-width timesheet container */
-.timesheet-container {
-  flex: 1;
-  width: 100vw; /* Full width of the viewport */
-  overflow-x: hidden; /* Prevent horizontal scrolling */
-}
-
-/* Ensure the timesheet table spans the full width */
-#timesheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed; /* Ensure table does not exceed container width */
+  table-layout: auto;
 }
 
 #timesheetTable th, #timesheetTable td {
@@ -1510,7 +1599,142 @@ html, body {
   word-wrap: break-word;
 }
 
-/* Responsive adjustments */
+.custom-calendar {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 10;
+  padding: 0 100px;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 10px;
+    width: 95%;
+    max-width: 100%;
+  }
+
+  .header {
+    padding: 10px;
+    width: 95%;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.content {
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  width: 95%;
+  max-width: 100%;
+  margin: 20px auto;
+  overflow-x: hidden;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: fixed;
+  overflow-x: hidden;
+}
+
+.timesheet-container {
+  overflow-x: hidden;
+}
+
+.timesheet-container::-webkit-scrollbar {
+  display: none;
+}
+
+.timesheet-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.content::-webkit-scrollbar {
+  display: none;
+}
+
+.content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #f0f2f5;
+  padding: 0;
+  margin: 0;
+}
+
+.content {
+  flex: 1;
+  width: 100vw;
+  max-width: 100vw;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  padding-top: 70px;
+}
+
+.header {
+  width: 100vw;
+  background-color: #007bff;
+  color: white;
+  text-align: center;
+  padding: 0px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.timesheet-container {
+  flex: 1;
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  word-wrap: break-word;
+}
+
 @media screen and (max-width: 1024px) {
   .content {
       padding: 0;
@@ -1540,5 +1764,712 @@ html, body {
   button {
       font-size: 12px;
       padding: 6px 12px;
+  }
+}
+
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+#pinInput {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: calc(100% - 20px);
+  margin-bottom: 15px;
+}
+
+#submitPin {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #007aff;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+#submitPin:hover {
+  background-color: #005bb5;
+}
+
+.timesheet-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #ccc;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .timesheet-table-wrapper {
+      padding: 5px;
+  }
+
+  th, td {
+      padding: 5px;
+      font-size: 14px;
+  }
+
+  .modal {
+      width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+  }
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: landscape) {
+  .modal {
+      width: 80%;
+  }
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) {
+  .modal {
+      width: 95%;
+  }
+}
+
+.timesheet-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  table-layout: auto;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+#timesheetTable th {
+  background-color: #007aff;
+  color: white;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+}
+
+#timesheetTable td {
+  background-color: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+  .timesheet-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+      padding: 10px;
+      font-size: 14px;
+  }
+}
+
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+header {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#dashboardContent, #overviewContent, #employeeManagementContent {
+  padding-top: 100px;
+}
+
+#overviewContent {
+  margin-top: 20px;
+}
+
+@media screen and (max-width: 768px) {
+  header {
+      padding: 15px;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+      font-size: 12px;
+      padding: 8px;
+  }
+
+  #timesheetTable {
+      width: 100%;
+      overflow-x: auto;
+  }
+
+  .filter-container {
+      flex-direction: column;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #timesheetTable th, #timesheetTable td {
+      font-size: 10px;
+      padding: 5px;
+  }
+
+  #dashboardContent, #overviewContent, #employeeManagementContent {
+      padding-top: 60px;
+  }
+}
+
+.timesheet-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+#timesheetTable {
+  width: 100%;
+  table-layout: fixed;
+}
+
+#timesheetTable th, #timesheetTable td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.filter-container select, .filter-container input {
+  margin: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.employee-management-item {
+  display: flex;
+  align-items: center;
+}
+
+.employee-name-id {
+  margin-right: auto;
+  padding-right: 20px;
+}
+
+.employee-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Clock In/Out Modal */
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay */
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: transparent; /* Transparent background */
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 500px;
+  width: 90%;
+}
+
+.clock-circle {
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background-color: #007aff;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* Stronger shadow for better depth */
+  margin: 20px auto;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.clock-circle.clock-out {
+  background-color: #dc3545;
+}
+
+.clock-time-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.clock-time {
+  font-size: 48px;
+  font-weight: bold;
+  margin-top: 10px; /* Space above the timer text */
+}
+
+/* Higher specificity for button elements if needed */
+button.break-button.show {
+  display: flex !important;
+}
+
+/* Add Employee Button */
+.add-employee-button {
+  padding: 20px 40px;
+  font-size: 20px;
+  background-color: #007aff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-employee-button:hover {
+  background-color: #005bb5;
+}
+
+/* Detailed View Modal Styles */
+#detailedViewModal .modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hours-circle {
+  width: 120px;
+  height: 120px;
+  background-color: #007aff;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  font-size: 28px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.employee-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.employee-role {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.days-worked {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  text-align: left;
+  line-height: 1.6;
+}
+
+.days-worked li {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.days-worked li:last-child {
+  border-bottom: none;
+}
+
+.modal-content .close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+}
+
+.modal-content .close:hover {
+  color: #999;
+}
+
+.payday-button {
+  padding: 10px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #007aff;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+.payday-button:hover {
+  background-color: #005bb5;
+}
+
+/* Improved Layout for Detailed View */
+.employee-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hours-circle {
+  margin-bottom: 10px;
+}
+
+.employee-name {
+  margin-bottom: 5px;
+}
+
+.days-worked li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px; /* Smaller font size for the dates */
+  padding: 8px 0;
+}
+
+.days-worked li strong {
+  font-weight: bold;
+  color: #333;
+}
+
+.days-worked li span {
+  color: #666;
+  font-size: 12px;
+}
+
+.modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+@media screen and (max-width: 768px) {
+  .content {
+    padding: 2%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  #timesheetTable {
+    display: block;
+  }
+
+  #timesheetTable tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    display: block;
+    width: 100%;
+    text-align: right;
+  }
+
+  #timesheetTable th::before, #timesheetTable td::before {
+    content: attr(data-label);
+    float: left;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  #timesheetTable td:last-child {
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 3%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  th {
+    display: block;
+    text-align: center;
+  }
+
+  tr {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  td {
+    display: block;
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    padding-left: 10px;
+    font-weight: bold;
+    text-align: left;
+  }
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+@media screen and (max-width: 768px) {
+  .content {
+    padding: 2%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  #timesheetTable {
+    display: block;
+  }
+
+  #timesheetTable tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    display: block;
+    width: 100%;
+    text-align: right;
+  }
+
+  #timesheetTable th::before, #timesheetTable td::before {
+    content: attr(data-label);
+    float: left;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  #timesheetTable td:last-child {
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 3%;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th, td {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  th {
+    display: block;
+    text-align: center;
+  }
+
+  tr {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  td {
+    display: block;
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    padding-left: 10px;
+    font-weight: bold;
+    text-align: left;
   }
 }
