@@ -913,3 +913,27 @@ document.addEventListener('DOMContentLoaded', function() {
   updateCalendar();
   updateDateTime();
 });
+// This function closes the modal when clicked outside the modal content
+function closeModalOnOutsideClick(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+}
+
+// Add event listeners for all modals except the clock in/out modals
+closeModalOnOutsideClick('detailedViewModal');
+closeModalOnOutsideClick('editTimesheetModal');
+closeModalOnOutsideClick('passwordModal');
+// Add more modals as necessary...
+
+// Keep the clock in/out modals the same, only close when the 'X' button is clicked
+document.querySelectorAll('.close').forEach(closeButton => {
+  closeButton.addEventListener('click', function() {
+    this.closest('.modal').style.display = 'none';
+  });
+});
