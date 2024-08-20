@@ -2589,3 +2589,63 @@ button.break-button.show {
 .timesheet-container::-webkit-scrollbar-track {
   background-color: #f0f2f5; /* Scrollbar track color */
 }
+/* Container to handle overflow */
+.timesheet-container {
+  overflow-x: auto; /* Enable horizontal scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on touch devices */
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 20px;
+}
+
+/* Table structure */
+#timesheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Consistent cell widths */
+  min-width: 900px; /* Ensures the table has a reasonable width for scrolling */
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  white-space: nowrap; /* Prevent wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Show ... for overflowed text */
+  max-width: 150px; /* Ensure each cell has a max width */
+  box-sizing: border-box;
+}
+
+/* Flexbox for better alignment in cells */
+#timesheetTable td {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Adjustments for small screens */
+@media screen and (max-width: 768px) {
+  #timesheetTable {
+    min-width: 1000px; /* Ensure it doesn't squeeze too much */
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+
+/* Custom scrollbar styling */
+.timesheet-container::-webkit-scrollbar {
+  height: 8px; /* Horizontal scrollbar height */
+}
+
+.timesheet-container::-webkit-scrollbar-thumb {
+  background-color: #007bff;
+  border-radius: 4px;
+}
+
+.timesheet-container::-webkit-scrollbar-track {
+  background-color: #f0f2f5;
+}
