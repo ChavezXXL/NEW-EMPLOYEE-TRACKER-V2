@@ -2473,3 +2473,64 @@ button.break-button.show {
     text-align: left;
   }
 }
+/* Ensure the table container can scroll horizontally */
+.timesheet-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* For smoother scrolling on touch devices */
+  max-width: 100%; /* Make sure the container does not exceed the viewport width */
+  margin-bottom: 20px;
+}
+
+/* Make sure the table can expand and does not cut off content */
+#timesheetTable {
+  width: 100%; /* Allow the table to take up full width */
+  border-collapse: collapse;
+  table-layout: auto; /* Let the table layout be determined by the content */
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto; /* Ensure horizontal overflow does not cut off the table */
+}
+
+#timesheetTable th, #timesheetTable td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  word-wrap: break-word; /* Ensure text within cells wraps to avoid overflow */
+  white-space: nowrap; /* Prevent the text from breaking into a new line */
+}
+
+@media screen and (max-width: 768px) {
+  /* Make adjustments for smaller screens */
+  #timesheetTable th, #timesheetTable td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  /* Display the table in a block format for easier reading */
+  #timesheetTable {
+    display: block;
+  }
+
+  #timesheetTable tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+
+  #timesheetTable th, #timesheetTable td {
+    display: block;
+    width: 100%;
+    text-align: right;
+  }
+
+  #timesheetTable th::before, #timesheetTable td::before {
+    content: attr(data-label);
+    float: left;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  #timesheetTable td:last-child {
+    text-align: center;
+  }
+}
