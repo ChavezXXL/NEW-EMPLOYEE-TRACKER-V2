@@ -2534,60 +2534,58 @@ button.break-button.show {
     text-align: center;
   }
 }
-/* Container handling overflow with scroll */
+/* Container to handle horizontal overflow */
 .timesheet-container {
   overflow-x: auto; /* Enable horizontal scrolling */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling for touch devices */
-  width: 100%; /* Ensure the container does not exceed screen width */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on touch devices */
+  width: 100%; /* Ensure container uses full width */
   max-width: 100%;
   margin-bottom: 20px;
 }
 
-/* Timesheet table settings */
+/* Table styling */
 #timesheetTable {
-  width: 100%; /* Allow the table to take the full width of the container */
+  width: 100%; /* Ensure table fills container width */
   border-collapse: collapse;
-  table-layout: auto; /* Columns adapt to content */
-  min-width: 800px; /* Ensure the table has a minimum width, so scrolling is required */
-  overflow-x: auto;
+  table-layout: fixed; /* Maintain consistent column widths */
+  min-width: 700px; /* Set a minimum width to trigger scrolling on smaller screens */
 }
 
 #timesheetTable th, #timesheetTable td {
   padding: 12px;
   text-align: left;
   border: 1px solid #ddd;
-  white-space: nowrap; /* Prevent text from wrapping within cells */
+  white-space: nowrap; /* Prevent wrapping inside cells */
 }
 
-/* For smaller screens */
+/* Adjustments for smaller screens */
 @media screen and (max-width: 768px) {
-  /* Ensure table can be scrolled horizontally */
-  .timesheet-container {
-    overflow-x: scroll;
-  }
-
   #timesheetTable {
-    display: block;
-    min-width: 1000px; /* Ensure scrolling on smaller devices */
+    min-width: 1000px; /* Ensure scrolling on smaller screens */
+  }
+}
+
+@media screen and (max-width: 600px) {
+  #timesheetTable {
+    min-width: 800px; /* Ensure scrolling on very small screens */
   }
 
-  /* Adjust padding and font sizes */
   #timesheetTable th, #timesheetTable td {
     font-size: 12px;
     padding: 8px;
   }
 }
 
-/* Custom scrollbar styling (optional) */
+/* Custom scrollbar for better UX */
 .timesheet-container::-webkit-scrollbar {
-  height: 8px;
+  height: 8px; /* Make scrollbar visible but not too large */
 }
 
 .timesheet-container::-webkit-scrollbar-thumb {
-  background-color: #007bff;
-  border-radius: 4px;
+  background-color: #007bff; /* Scrollbar thumb color */
+  border-radius: 4px; /* Rounded scrollbar thumb */
 }
 
 .timesheet-container::-webkit-scrollbar-track {
-  background-color: #f0f2f5;
+  background-color: #f0f2f5; /* Scrollbar track color */
 }
