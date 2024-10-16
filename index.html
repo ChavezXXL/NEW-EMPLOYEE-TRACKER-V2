@@ -7,182 +7,285 @@
     <title>Employee Time Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="/manifest.json"> <!-- Link to the manifest.json file -->
+<!-- Include Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA1xw7U1A7vLA9XAPzPmKTfZ-MdtEdTiNc",
+      authDomain: "sc-project-tracking.firebaseapp.com",
+      databaseURL: "https://sc-project-tracking-default-rtdb.firebaseio.com",
+      projectId: "sc-project-tracking",
+      storageBucket: "sc-project-tracking.appspot.com",
+      messagingSenderId: "934713747712",
+      appId: "1:934713747712:web:15a9bd6e8a86818d37ebe5"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- PWA additions -->
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
 </head>
-
 <body>
-    <div class="app-container">
-        <div class="content">
-            <div class="header">
-                <div class="menu-icon" id="menuIcon">
-                    <div class="bar1"></div>
-                    <div class="bar2"></div>
-                    <div class="bar3"></div>
-                </div>
-                <div class="date-time" id="dateTime">
-                    <div id="currentDate" class="bold-text"></div>
-                    <div id="currentTime" class="bold-text"></div>
-                </div>
-                <button id="addEmployeeButton" class="add-employee-button" style="display: none;">Add Employee</button>
-            </div>
-            <div id="dashboardContent">
-                <h2 class="bold-text">Employee List</h2>
-                <ul id="employees" class="employee-list"></ul>
-            </div>
-            <div id="employeeManagementContent" style="display:none;">
-                <h2 class="bold-text">Employee Management</h2>
-                <div class="employee-management">
-                    <ul id="employeeManagementList" class="employee-list"></ul>
-                </div>
-            </div>
-            <div id="overviewContent" style="display:none;">
-                <div class="overview-header">
-                    <h2 class="bold-text">Overview</h2>
-                    <div class="filter-options">
-                        <label for="employeeFilter">Employee:</label>
-                        <select id="employeeFilter"></select>
-                        <label for="timeFilter">Time Frame:</label>
-                        <select id="timeFilter">
-                            <option value="day">Day</option>
-                            <option value="week">Week</option>
-                            <option value="month">Month</option>
-                            <option value="year">Year</option>
-                        </select>
-                        <label for="dateFilter">Date:</label>
-                        <input type="date" id="dateFilter">
-                    </div>
-                </div>
+    <!-- Header -->
+   <header>
+   <div class="container">
+     <h1>Project Management App</h1>
+     <button id="menu-icon"><i class="fas fa-bars"></i></button>
+   </div>
+ </header>
 
-                <div class="week-navigation">
-                    <button id="prevWeekButton" class="week-button">← Previous Week</button>
-                    <button id="nextWeekButton" class="week-button">Next Week →</button>
-                </div>
+  <!-- Side Menu -->
+  <nav id="side-menu">
+  <ul>
+    <li><button id="show-project-list-btn"><i class="fas fa-tasks"></i> Projects</button></li>
+    <li><button id="show-completed-projects-btn"><i class="fas fa-check-circle"></i> Completed Projects</button></li>
+    <li><button id="show-employee-list-btn"><i class="fas fa-users"></i> Employees</button></li>
+    <li><button id="show-client-list-btn"><i class="fas fa-address-book"></i> Clients</button></li>
+    <li><button id="show-work-log-btn"><i class="fas fa-clock"></i> Work Logs</button></li>
+    <li><button id="show-settings-btn"><i class="fas fa-cog"></i> Settings</button></li>
+    <li><button id="show-admin-view-btn"><i class="fas fa-user-shield"></i> Admin View</button></li>
+  </ul>
+  <div id="menu-bottom">
+    <button id="export-data-btn" class="btn-danger"><i class="fas fa-download"></i> Export Data</button>
+    <button id="clear-data-btn" class="btn-danger"><i class="fas fa-trash"></i> Clear Data</button>
+  </div>
+</nav>
 
-                <div id="customCalendar" class="custom-calendar"></div>
-                <div class="timesheet-container">
-                    <table id="timesheetTable">
-                        <thead>
-                            <tr>
-                                <th>Role</th>
-                                <th>Name</th>
-                                <th>Date</th>
-                                <th>Clock In</th>
-                                <th>Start Break</th>
-                                <th>End Break</th>
-                                <th>Clock Out</th>
-                                <th>Total Work Hours</th>
-                                <th>Total Break Hours</th>
-                                <th>Daily Pay</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Timesheet records will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
-                <button id="printButton" onclick="generatePayDaySheet()">Print Report</button>
-            </div>
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Project List Section -->
+    <section id="project-list" class="content active">
+      <div class="header-row">
+        <h2>Projects</h2>
+        <div class="actions-container">
+          <button id="add-project-btn" class="btn-primary"><i class="fas fa-plus"></i> Add Project</button>
+          <input type="text" id="project-search-input" placeholder="Search Projects">
         </div>
-    </div>
+      </div>
+      <div id="projects" class="project-container"></div>
+    </section>
 
-    <div id="myNav" class="overlay">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-        <div class="overlay-content">
-            <a href="javascript:void(0)" onclick="showDashboard()">Dashboard</a>
-            <a href="javascript:void(0)" onclick="showEmployeeManagement()">Employee Management</a>
-            <a href="javascript:void(0)" onclick="showOverview()">Overview</a>
+    <!-- Completed Projects Section -->
+    <section id="completed-projects" class="content">
+    <div class="header-row">
+      <h2>Completed Projects</h2>
+      <div class="actions-container">
+        <input type="text" id="completed-project-search-input" placeholder="Search Completed Projects">
+      </div>
+    </div>
+    <div id="completed-projects-container" class="project-container"></div>
+  </section>
+
+ <!-- Admin View Section -->
+ <section id="admin-view" class="content">
+ <div class="header-row">
+   <h2>Admin View</h2>
+   <div class="actions-container">
+     <input type="text" id="admin-project-search-input" placeholder="Search Projects">
+   </div>
+ </div>
+ <div id="admin-projects" class="project-container"></div>
+</section>
+
+    <!-- Employee List Section -->
+    <section id="employee-list" class="content">
+    <div class="header-row">
+      <h2>Employees</h2>
+      <div class="actions-container">
+        <button id="add-employee-btn" class="btn-primary"><i class="fas fa-plus"></i> Add Employee</button>
+        <input type="text" id="employee-search-input" placeholder="Search Employees">
+      </div>
+    </div>
+    <ul id="employees" class="employee-list"></ul>
+  </section>
+
+      <!-- Client List Section -->
+      <section id="client-list" class="content">
+      <div class="header-row">
+        <h2>Clients</h2>
+        <div class="actions-container">
+          <button id="add-client-btn" class="btn-primary"><i class="fas fa-plus"></i> Add Client</button>
+          <input type="text" id="client-search-input" placeholder="Search Clients">
         </div>
-    </div>
+      </div>
+      <ul id="clients" class="client-list"></ul>
+    </section>
 
-    <div id="clockInModal" class="modal">
-        <div class="modal-content transparent-modal">
-            <div class="clock-circle pulse-animation">
-                <div class="clock-time-container">
-                    <div id="employeeName"></div>
-                    <div id="timer" class="clock-time">00:00:00</div>
-                </div>
-            </div>
-            <div class="button-container">
-                <button id="breakButton" class="clock-button break-button">Start Break</button>
-            </div>
-        </div>
+    <!-- Work Log Section -->
+    <section id="work-log" class="content">
+    <div class="header-row">
+      <h2>Work Logs</h2>
+      <div class="actions-container">
+        <input type="text" id="work-log-search-input" placeholder="Search Work Logs">
+      </div>
     </div>
+    <div id="work-log-entries" class="work-log-container"></div>
+  </section>
 
-    <div id="passwordModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Enter PIN to Access Overview</h3>
-            <input type="password" id="passwordInput" placeholder="PIN">
-            <button id="submitPassword" onclick="checkPassword()">Submit</button>
-        </div>
+    <!-- Settings Page -->
+    <section id="settings-page" class="content">
+    <div class="settings-container">
+      <div class="settings-group">
+        <h3>Appearance Settings</h3>
+        <label for="theme-color">Primary Color:</label>
+        <input type="color" id="theme-color" value="#2d4059">
+        <label for="accent-color">Accent Color:</label>
+        <input type="color" id="accent-color" value="#f07b3f">
+        <label for="font-select">Font Family:</label>
+        <select id="font-select">
+          <option value="'Poppins', sans-serif">Poppins</option>
+          <option value="'Roboto', sans-serif">Roboto</option>
+          <option value="'Open Sans', sans-serif">Open Sans</option>
+        </select>
+        <label for="layout-select">Layout Style:</label>
+        <select id="layout-select">
+          <option value="grid">Grid</option>
+          <option value="list">List</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <h3>Operations</h3>
+        <label for="new-operation-input">Add New Operation:</label>
+        <input type="text" id="new-operation-input" placeholder="Operation Name">
+        <button id="add-operation-btn" class="btn-primary">Add Operation</button>
+        <ul id="operations-list"></ul>
+      </div>
+      <div class="settings-group">
+        <h3>Default Settings</h3>
+        <label for="default-priority">Default Priority:</label>
+        <select id="default-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+        <label for="default-employees">Default Assigned Employees:</label>
+        <select id="default-employees" multiple></select>
+      </div>
     </div>
-
-    <div id="editEmployeeModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Edit Employee</h3>
-            <label for="editEmployeeId">ID</label>
-            <input type="text" id="editEmployeeId" disabled>
-            <label for="editEmployeeName">Name</label>
-            <input type="text" id="editEmployeeName">
-            <label for="editEmployeeRole">Role</label>
-            <input type="text" id="editEmployeeRole">
-            <label for="editEmployeePayRate">Pay Rate</label>
-            <input type="number" id="editEmployeePayRate">
-            <button id="saveEmployeeChanges">Save</button>
-        </div>
+  </section>
+</div>
+  <!-- Modals -->
+  <!-- Project Modal -->
+  <div id="project-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-project-modal" class="close">&times;</span>
+      <h2>Add/Edit Project</h2>
+      <form id="project-form">
+        <label for="project-name">Project Name:</label>
+        <input type="text" id="project-name" required>
+        <label for="purchase-order">Purchase Order:</label>
+        <input type="text" id="purchase-order">
+        <label for="part-number">Part Number:</label>
+        <input type="text" id="part-number">
+        <label for="job-number">Job Number:</label>
+        <input type="text" id="job-number">
+        <label for="due-date">Due Date:</label>
+        <input type="date" id="due-date">
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity">
+        <label for="notes">Notes:</label>
+        <textarea id="notes"></textarea>
+        <label for="project-employees">Assign Employees:</label>
+        <select id="project-employees" multiple></select>
+        <label for="project-priority">Priority:</label>
+        <select id="project-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+        <label for="project-client">Client:</label>
+        <select id="project-client"></select>
+        <label for="estimated-time">Estimated Time (hours):</label>
+<input type="number" id="estimated-time" name="estimated-time" min="0" step="0.5">
+        <button type="button" id="save-project-btn" class="btn-primary">Save Project</button>
+      </form>
     </div>
+  </div>
 
-    <div id="addEmployeeModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Employee</h3>
-            <label for="addEmployeeName">Name</label>
-            <input type="text" id="addEmployeeName">
-            <label for="addEmployeeId">ID</label>
-            <input type="text" id="addEmployeeId">
-            <label for="addEmployeeRole">Role</label>
-            <input type="text" id="addEmployeeRole">
-            <label for="addEmployeePayRate">Pay Rate</label>
-            <input type="number" id="addEmployeePayRate">
-            <button id="addEmployeeSubmit" onclick="addEmployee()">Add</button>
-        </div>
+  <!-- Employee Modal -->
+  <div id="employee-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-employee-modal" class="close">&times;</span>
+      <h2>Add Employee</h2>
+      <form id="employee-form">
+        <label for="employee-name">Employee Name:</label>
+        <input type="text" id="employee-name" required>
+        <button type="button" id="save-employee-btn" class="btn-primary">Save Employee</button>
+      </form>
     </div>
+  </div>
 
-    <div id="editTimesheetModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Edit Timesheet</h3>
-            <label for="editStartTime">Start Time</label>
-            <input type="time" id="editStartTime">
-            <label for="editEndTime">End Time</label>
-            <input type="time" id="editEndTime">
-            <label for="editBreakStartTime">Break Start Time</label>
-            <input type="time" id="editBreakStartTime">
-            <label for="editBreakEndTime">Break End Time</label>
-            <input type="time" id="editBreakEndTime">
-            <button id="saveTimesheetChanges" onclick="saveTimesheet()">Save</button>
-        </div>
+  <!-- Operation Modal -->
+  <div id="operation-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-operation-modal" class="close">&times;</span>
+      <h2>Start Operation</h2>
+      <form id="operation-form">
+        <label for="operation-select">Select Operation:</label>
+        <select id="operation-select"></select>
+        <label for="operation-employees">Select Employees:</label>
+        <select id="operation-employees" multiple></select>
+        <button type="button" id="start-operation-btn" class="btn-primary">Start Operation</button>
+      </form>
     </div>
+  </div>
 
-    <div id="detailedViewModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeDetailedViewModal()">&times;</span>
-            <div class="circle-container">
-                <div class="hours-circle pulse-animation">
-                    <div class="hours-text" id="detailedViewTotalHours">0.00 hours</div>
-                </div>
-            </div>
-            <div id="detailedViewEmployeeName" class="employee-name">Employee Name</div>
-            <div id="detailedViewEmployeeRole" class="employee-role">Role</div>
-            <ul id="detailedViewDaysWorked" class="days-worked">
-                <!-- Days worked entries will go here -->
-            </ul>
-            <button id="payDayButton" class="payday-button" onclick="generatePayDaySheet()">Pay Day</button>
-        </div>
+  <!-- Client Modal -->
+  <div id="client-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-client-modal" class="close">&times;</span>
+      <h2>Add/Edit Client</h2>
+      <form id="client-form">
+        <label for="client-name">Client Name:</label>
+        <input type="text" id="client-name" required>
+        <label for="client-contact">Contact Person:</label>
+        <input type="text" id="client-contact">
+        <label for="client-phone">Phone Number:</label>
+        <input type="text" id="client-phone">
+        <label for="client-email">Email:</label>
+        <input type="email" id="client-email">
+        <label for="client-address">Address:</label>
+        <textarea id="client-address"></textarea>
+        <button type="button" id="save-client-btn" class="btn-primary">Save Client</button>
+      </form>
     </div>
+  </div>
 
-    <script src="script.js"></script> <!-- Link to the main JavaScript file -->
+  <!-- Project Details Modal -->
+  <div id="project-details-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-project-details-modal" class="close">&times;</span>
+      <div id="project-details-content"></div>
+    </div>
+  </div>
+
+  <div id="pause-log-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div id="pause-log-content"></div>
+  </div>
+</div>
+
+  <!-- Scripts -->
+  <script type="module" src="main.js"></script>
 </body>
-
 </html>
