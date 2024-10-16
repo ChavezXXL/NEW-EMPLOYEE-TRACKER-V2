@@ -1,15 +1,16 @@
 // Register the service worker for PWA functionality
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          })
-          .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-          });
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((registration) => {
+        console.log('Service Worker registered successfully:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('Service Worker registration failed:', error);
+      });
   });
 }
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getDatabase, ref, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
@@ -825,7 +826,7 @@ function setupModalCloseListeners() {
       console.error("Date filter element not found");
     }
   }
-  
+
   // Export and email functions
   async function exportToCSV() {
     let csvContent = "data:text/csv;charset=utf-8,";
