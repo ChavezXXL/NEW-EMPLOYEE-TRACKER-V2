@@ -10,1900 +10,1629 @@ if ('serviceWorker' in navigator) {
           });
   });
 }
-// main.js
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getDatabase, ref, set, get, push, remove, update, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+import { getDatabase, ref, set, get, push, remove, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA1xw7U1A7vLA9XAPzPmKTfZ-MdtEdTiNc",
-  authDomain: "sc-project-tracking.firebaseapp.com",
-  databaseURL: "https://sc-project-tracking-default-rtdb.firebaseio.com",
-  projectId: "sc-project-tracking",
-  storageBucket: "sc-project-tracking.appspot.com",
-  messagingSenderId: "934713747712",
-  appId: "1:934713747712:web:15a9bd6e8a86818d37ebe5"
+  apiKey: "AIzaSyB7wq0ripHZjjq3UGmEyXDcqchOne80zbQ",
+  authDomain: "employee-tracking-46e85.firebaseapp.com",
+  databaseURL: "https://employee-tracking-46e85-default-rtdb.firebaseio.com",
+  projectId: "employee-tracking-46e85",
+  storageBucket: "employee-tracking-46e85.appspot.com",
+  messagingSenderId: "122564068962",
+  appId: "1:122564068962:web:20806ae0c9e16b533db33b",
+  measurementId: "G-W26SV1SZEJ"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Variables to store data
-let projects = [];
-let employees = [];
-let operations = [];
-let workLogs = [];
-let clients = [];
+console.log("Firebase initialized");
 
-document.addEventListener('DOMContentLoaded', () => {
-  const addOperationBtn = document.getElementById('add-operation-btn');
-  if (addOperationBtn) {
-    addOperationBtn.addEventListener('click', addOperation);
+// Debugging function
+function debug(message) {
+  console.log(`[DEBUG] ${message}`);
+}
+
+// Global variables
+let activeEmployeeId = null;
+let currentInterval = null;
+let performanceChart = null;
+
+// Main function to initialize everything
+async function initializeTimesheetApp() {
+  debug("Initializing app...");
+  try {
+    await ensureSettingsLoaded();
+    await loadEmployees();
+    await loadSettings();
+    setInterval(updateDateTime, 1000);
+    await updateUI();
+    setupEventListeners();
+    setupModalCloseListeners();
+    startRealTimeClock();
+    displayTodayWorkSummary();
+    debug("App initialization complete.");
+  } catch (error) {
+    console.error("Error during app initialization:", error);
+    showError("An error occurred while initializing the app. Please check the console and try again.");
+  }
+}
+
+// Function to show the add employee modal
+function showAddEmployeeModal() {
+  const addEmployeeModal = document.getElementById('addEmployeeModal');
+  if (addEmployeeModal) {
+    addEmployeeModal.style.display = 'flex';
   } else {
-    console.error('Add operation button not found');
+    console.error("Add employee modal not found");
   }
+}
 
-  // Load data from Firebase
-  function loadData() {
-    return Promise.all([
-      get(ref(db, 'projects')),
-      get(ref(db, 'employees')),
-      get(ref(db, 'operations')),
-      get(ref(db, 'workLogs')),
-      get(ref(db, 'clients')),
-      get(ref(db, 'settings'))
-    ]).then(([projectsSnapshot, employeesSnapshot, operationsSnapshot, workLogsSnapshot, clientsSnapshot, settingsSnapshot]) => {
-      console.log('Data loaded:', {
-        projects: projectsSnapshot.val(),
-        employees: employeesSnapshot.val(),
-        operations: operationsSnapshot.val(),
-        workLogs: workLogsSnapshot.val(),
-        clients: clientsSnapshot.val(),
-        settings: settingsSnapshot.val()
-      });
-  
-      renderProjects();
-      renderCompletedProjects();
-      renderAdminProjects();
-      renderEmployees();
-      renderWorkLogs();
-      renderClients();
-      renderOperations();
-  
-      if (settingsSnapshot.exists()) {
-        const settings = settingsSnapshot.val();
-        applySettings(settings);
-      }
-  
-      setupImprovedSearch();
-      setupSearchSuggestions();
-    }).catch(error => {
-      console.error("Error loading data:", error);
-      showNotification('Failed to load data. Please check console for details.', 'error');
-    });
+// Setup event listeners
+function setupEventListeners() {
+  const elements = {
+    addEmployeeButton: { id: 'addEmployeeButton', event: 'click', handler: showAddEmployeeModal },
+    addEmployeeSubmit: { id: 'addEmployeeSubmit', event: 'click', handler: addEmployee },
+    dateFilter: { id: 'dateFilter', event: 'change', handler: displayTimesheet },
+    employeeFilter: { id: 'employeeFilter', event: 'change', handler: displayTimesheet },
+    timeFilter: { id: 'timeFilter', event: 'change', handler: displayTimesheet },
+    exportCSVButton: { id: 'exportCSVButton', event: 'click', handler: exportToCSV },
+    sendEmailButton: { id: 'sendEmailButton', event: 'click', handler: sendWeeklyEmail },
+    generatePayDaySheetButton: { id: 'generatePayDaySheetButton', event: 'click', handler: generatePayDaySheet },
+    prevWeekButton: { id: 'prevWeekButton', event: 'click', handler: () => changeWeek(-1) },
+nextWeekButton: { id: 'nextWeekButton', event: 'click', handler: () => changeWeek(1) }
+  };
+
+  for (const [key, { id, event, handler }] of Object.entries(elements)) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener(event, handler);
+    } else {
+      console.warn(`Element not found: ${id}. This may not be an error if the element is not needed in the current view.`);
+    }
   }
+}
 
-  // Initial data load
-  loadData();
+// Firebase data operations
+async function addEmployee() {
+  try {
+    const name = document.getElementById('addEmployeeName').value;
+    const id = document.getElementById('addEmployeeId').value;
+    const payRate = document.getElementById('addEmployeePayRate').value;
+    const role = document.getElementById('addEmployeeRole').value;
 
-  // Set up real-time listeners
-  setupRealtimeListeners();
+    if (name && id && payRate && role) {
+      const employeeRef = ref(db, 'employees/' + id);
+      await set(employeeRef, { name, id, payRate: parseFloat(payRate), role });
+      await set(ref(db, 'timesheets/' + id), {});
+      await set(ref(db, 'timers/' + id), { mainTime: 0, breakTime: 0, startTime: null, breakStartTime: null, isRunning: false, isOnBreak: false });
+      await loadEmployees();
+      document.getElementById('addEmployeeModal').style.display = 'none';
+    } else {
+      showError('Please fill out all fields.');
+    }
+  } catch (error) {
+    console.error("Error adding employee:", error);
+    showError('Failed to add employee. Please try again.');
+  }
+}
 
-  function setupRealtimeListeners() {
-    const projectsRef = ref(db, 'projects');
-    onValue(projectsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const projectsData = snapshot.val();
-        projects = Object.keys(projectsData).map(key => ({
-          ...projectsData[key],
-          id: key,
-          estimatedTime: parseFloat(projectsData[key].estimatedTime) || 0,
-          assignedEmployees: projectsData[key].assignedEmployees || []
-        }));
-      } else {
-        projects = [];
-      }
-      renderProjects();
-      renderCompletedProjects();
-      renderAdminProjects();
-    });
-
+async function loadEmployees() {
+  try {
+    debug("Loading employees...");
     const employeesRef = ref(db, 'employees');
-    onValue(employeesRef, (snapshot) => {
-      employees = snapshot.exists() ? Object.values(snapshot.val()) : [];
-      renderEmployees();
-    });
-
-    const operationsRef = ref(db, 'operations');
-    onValue(operationsRef, (snapshot) => {
-      operations = snapshot.exists() ? Object.values(snapshot.val()) : [];
-      renderOperations();
-    });
-
-    const workLogsRef = ref(db, 'workLogs');
-    onValue(workLogsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const newWorkLogs = Object.entries(snapshot.val()).map(([id, logEntry]) => ({ ...logEntry, id }));
-        // Update only if there are changes
-        if (JSON.stringify(newWorkLogs) !== JSON.stringify(workLogs)) {
-          workLogs = newWorkLogs;
-          renderWorkLogs();
-        }
-      } else {
-        workLogs = [];
-        renderWorkLogs();
-      }
-    });
-    
-    const clientsRef = ref(db, 'clients');
-    onValue(clientsRef, (snapshot) => {
-      clients = snapshot.exists() ? Object.values(snapshot.val()) : [];
-      renderClients();
-    });
+    const snapshot = await get(employeesRef);
+    if (snapshot.exists()) {
+      const employees = snapshot.val();
+      debug("Employees loaded:", employees);
+      updateEmployeeList(employees);
+      updateEmployeeManagementList(employees);
+      updateEmployeeFilter(employees);
+    } else {
+      debug("No employees found");
+    }
+  } catch (error) {
+    console.error("Error loading employees:", error);
+    showError(`Failed to load employees. Error: ${error.message}`);
   }
+}
 
-  function applySettings(settings) {
-    if (settings.primaryColor) {
-      document.documentElement.style.setProperty('--primary-color', settings.primaryColor);
-      document.getElementById('theme-color').value = settings.primaryColor;
-    }
-    if (settings.accentColor) {
-      document.documentElement.style.setProperty('--accent-color', settings.accentColor);
-      document.getElementById('accent-color').value = settings.accentColor;
-    }
-    if (settings.fontFamily) {
-      document.documentElement.style.setProperty('--font-family', settings.fontFamily);
-      document.getElementById('font-select').value = settings.fontFamily;
-    }
-    document.getElementById('layout-select').value = settings.layoutStyle || 'list';
-    document.getElementById('default-priority').value = settings.defaultPriority || 'medium';
-    const defaultEmployeesSelect = document.getElementById('default-employees');
-    loadEmployeesToSelect(defaultEmployeesSelect);
-    Array.from(defaultEmployeesSelect.options).forEach((option) => {
-      option.selected = settings.defaultEmployees?.includes(option.value);
-    });
+async function updateEmployee(id, name, role, payRate) {
+  try {
+    const employeeRef = ref(db, 'employees/' + id);
+    await update(employeeRef, { name, role, payRate: parseFloat(payRate) });
+    await loadEmployees();
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    showError('Failed to update employee. Please try again.');
   }
+}
 
-  // Save settings to Firebase
-  function saveSettings() {
-    const settings = {
-      primaryColor: document.getElementById('theme-color').value,
-      accentColor: document.getElementById('accent-color').value,
-      fontFamily: document.getElementById('font-select').value,
-      layoutStyle: document.getElementById('layout-select').value,
-      defaultPriority: document.getElementById('default-priority').value,
-      defaultEmployees: Array.from(document.getElementById('default-employees').selectedOptions).map(
-        (option) => option.value
-      ),
+async function deleteEmployee(id) {
+  try {
+    if (confirm('Are you sure you want to delete this employee?')) {
+      await remove(ref(db, 'employees/' + id));
+      await remove(ref(db, 'timesheets/' + id));
+      await remove(ref(db, 'timers/' + id));
+      await loadEmployees();
+    }
+  } catch (error) {
+    console.error("Error deleting employee:", error);
+    showError('Failed to delete employee. Please try again.');
+  }
+}
+
+async function loadSettings() {
+  try {
+    const settingsRef = ref(db, 'settings');
+    const snapshot = await get(settingsRef);
+    if (snapshot.exists()) {
+      const settings = snapshot.val();
+      applySettingsToUI(settings);
+    } else {
+      const defaultSettings = getDefaultSettings();
+      await set(settingsRef, defaultSettings);
+      applySettingsToUI(defaultSettings);
+    }
+  } catch (error) {
+    console.error("Error loading settings:", error);
+    showError('Failed to load settings. Please try again.');
+  }
+}
+
+function applySettingsToUI(settings) {
+  const elements = ['companyName', 'companyAddress', 'adminPIN', 'businessStartTime', 'businessEndTime', 'overtimeThreshold', 'overtimeMultiplier', 'minimumBreakDuration', 'maximumBreakDuration'];
+  elements.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.value = settings[id];
+    } else {
+      console.error(`Settings element not found: ${id}`);
+    }
+  });
+}
+
+function getDefaultSettings() {
+  return {
+    companyName: 'SC DEBURRING',
+    companyAddress: '12734 Branford St STE 17, Pacoima, CA',
+    adminPIN: '2061',
+    businessStartTime: '09:00',
+    businessEndTime: '17:00',
+    overtimeThreshold: 8,
+    overtimeMultiplier: 1.5,
+    minimumBreakDuration: 30,
+    maximumBreakDuration: 60,
+  };
+}
+
+async function saveSettings() {
+  debug("Saving settings...");
+  try {
+    const newSettings = {
+      companyName: document.getElementById('companyName').value,
+      companyAddress: document.getElementById('companyAddress').value,
+      adminPIN: document.getElementById('adminPIN').value,
+      businessStartTime: document.getElementById('businessStartTime').value,
+      businessEndTime: document.getElementById('businessEndTime').value,
+      overtimeThreshold: parseFloat(document.getElementById('overtimeThreshold').value),
+      overtimeMultiplier: parseFloat(document.getElementById('overtimeMultiplier').value),
+      minimumBreakDuration: parseInt(document.getElementById('minimumBreakDuration').value),
+      maximumBreakDuration: parseInt(document.getElementById('maximumBreakDuration').value),
+      timeZone: document.getElementById('timeZone').value,
+      payrollFrequency: document.getElementById('payrollFrequency').value,
+      enableNotifications: document.getElementById('enableNotifications').checked,
+      notificationEmail: document.getElementById('notificationEmail').value,
+      exportFormat: document.getElementById('exportFormat').value,
+      language: document.getElementById('language').value
     };
 
-    set(ref(db, 'settings'), settings)
-      .then(() => {
-        document.documentElement.style.setProperty('--primary-color', settings.primaryColor);
-        document.documentElement.style.setProperty('--accent-color', settings.accentColor);
-        document.documentElement.style.setProperty('--font-family', settings.fontFamily);
-
-        renderProjects();
-        renderCompletedProjects();
-        renderAdminProjects();
-        showNotification('Settings saved successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error saving settings:', error);
-        showNotification('Failed to save settings. Please try again.', 'error');
-      });
+    const settingsRef = ref(db, 'settings');
+    await set(settingsRef, newSettings);
+    showSuccess('Settings saved successfully.');
+    debug("Settings saved successfully");
+  } catch (error) {
+    console.error("Error saving settings:", error);
+    showError('Failed to save settings. Error: ' + error.message);
   }
+}
 
-  // Add event listeners to save settings when changed
-  document.getElementById('theme-color').addEventListener('change', saveSettings);
-  document.getElementById('accent-color').addEventListener('change', saveSettings);
-  document.getElementById('font-select').addEventListener('change', saveSettings);
-  document.getElementById('layout-select').addEventListener('change', saveSettings);
-  document.getElementById('default-priority').addEventListener('change', saveSettings);
-  document.getElementById('default-employees').addEventListener('change', saveSettings);
-
-  // Toggle Side Menu
-  const menuIcon = document.getElementById('menu-icon');
-  const sideMenu = document.getElementById('side-menu');
-
-  menuIcon.addEventListener('click', () => {
-    console.log('Menu icon clicked');
-    sideMenu.classList.toggle('active');
-    console.log('Side menu classes:', sideMenu.classList);
-  });
-
-  // Close Side Menu when clicking outside
-  document.addEventListener('click', (event) => {
-    if (!sideMenu.contains(event.target) && !menuIcon.contains(event.target)) {
-      sideMenu.classList.remove('active');
-    }
-  });
-
-  // Show and Hide Content Sections
-  function showSection(sectionId) {
-    console.log('Showing section:', sectionId);
-    document.querySelectorAll('.content').forEach((content) => {
-      content.style.display = 'none';
-    });
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.style.display = 'block';
-    }
-    sideMenu.classList.remove('active');
-
-    // Render appropriate content
-    switch(sectionId) {
-      case 'project-list':
-        renderProjects();
-        break;
-      case 'completed-projects':
-        renderCompletedProjects();
-        break;
-      case 'employee-list':
-        renderEmployees();
-        break;
-      case 'work-log':
-        renderWorkLogs();
-        break;
-      case 'client-list':
-        renderClients();
-        break;
-      case 'settings-page':
-        renderOperations();
-        loadEmployeesToSelect(document.getElementById('default-employees'));
-        break;
-      case 'admin-view':
-        renderAdminProjects();
-        break;
-    }
+async function logTimesheet(id, type) {
+  try {
+    const timestamp = Date.now();
+    const timesheetRef = ref(db, 'timesheets/' + id);
+    await push(timesheetRef, { type, timestamp });
+  } catch (error) {
+    console.error("Error logging timesheet:", error);
+    showError('Failed to log timesheet entry. Please try again.');
   }
-
-  // Ensure navigation buttons are working
-  document.getElementById('show-project-list-btn').addEventListener('click', () => showSection('project-list'));
-  document.getElementById('show-completed-projects-btn').addEventListener('click', () => showSection('completed-projects'));
-  document.getElementById('show-employee-list-btn').addEventListener('click', () => showSection('employee-list'));
-  document.getElementById('show-work-log-btn').addEventListener('click', () => showSection('work-log'));
-  document.getElementById('show-settings-btn').addEventListener('click', () => showSection('settings-page'));
-  document.getElementById('show-client-list-btn').addEventListener('click', () => showSection('client-list'));
-  document.getElementById('show-admin-view-btn').addEventListener('click', () => showSection('admin-view'));
-
-  // Initially show the project list section
-  showSection('project-list');
-
-  // Modals
-  const projectModal = document.getElementById('project-modal');
-  const closeProjectModalBtn = document.getElementById('close-project-modal');
-  const addProjectBtn = document.getElementById('add-project-btn');
-  const saveProjectBtn = document.getElementById('save-project-btn');
-  const projectForm = document.getElementById('project-form');
-
-  const employeeModal = document.getElementById('employee-modal');
-  const closeEmployeeModalBtn = document.getElementById('close-employee-modal');
-  const addEmployeeBtn = document.getElementById('add-employee-btn');
-  const saveEmployeeBtn = document.getElementById('save-employee-btn');
-  const employeeForm = document.getElementById('employee-form');
-
-  const operationModal = document.getElementById('operation-modal');
-  const closeOperationModalBtn = document.getElementById('close-operation-modal');
-  const startOperationBtn = document.getElementById('start-operation-btn');
-  const cancelOperationBtn = document.getElementById('cancel-operation-btn');
-  const operationForm = document.getElementById('operation-form');
-
-  const projectDetailsModal = document.getElementById('project-details-modal');
-  const closeProjectDetailsModalBtn = document.getElementById('close-project-details-modal');
-  const projectDetailsContent = document.getElementById('project-details-content');
-
-  const clientModal = document.getElementById('client-modal');
-  const closeClientModalBtn = document.getElementById('close-client-modal');
-  const addClientBtn = document.getElementById('add-client-btn');
-  const saveClientBtn = document.getElementById('save-client-btn');
-  const clientForm = document.getElementById('client-form');
-
-  // Close modals when clicking outside
-  window.addEventListener('click', (event) => {
-    if (event.target == projectModal) {
-      projectModal.style.display = 'none';
-    }
-    if (event.target == employeeModal) {
-      employeeModal.style.display = 'none';
-    }
-    if (event.target == operationModal) {
-      operationModal.style.display = 'none';
-    }
-    if (event.target == projectDetailsModal) {
-      projectDetailsModal.style.display = 'none';
-    }
-    if (event.target == clientModal) {
-      clientModal.style.display = 'none';
-    }
-  });
-
-  // Add Project Modal
-  addProjectBtn.addEventListener('click', () => {
-    console.log('Add project button clicked');
-    loadEmployeesToSelect(document.getElementById('project-employees'));
-    loadClientsToSelect(document.getElementById('project-client'));
-    get(ref(db, 'settings/defaultEmployees')).then((snapshot) => {
-      if (snapshot.exists()) {
-        const defaultEmployees = snapshot.val();
-        const projectEmployeesSelect = document.getElementById('project-employees');
-        Array.from(projectEmployeesSelect.options).forEach((option) => {
-          option.selected = defaultEmployees.includes(option.value);
-        });
-      }
-    });
-    get(ref(db, 'settings/defaultPriority')).then((snapshot) => {
-      if (snapshot.exists()) {
-        document.getElementById('project-priority').value = snapshot.val();
-      } else {
-        document.getElementById('project-priority').value = 'medium';
-      }
-    });
-    projectModal.style.display = 'block';
-    console.log('Project modal display:', projectModal.style.display);
-  });
-
-  closeProjectModalBtn.addEventListener('click', () => {
-    projectModal.style.display = 'none';
-    projectForm.reset();
-    saveProjectBtn.onclick = saveNewProject;
-  });
-
-  saveProjectBtn.onclick = saveNewProject;
-
-  function saveNewProject() {
-    const projectData = {
-      id: generateId(),
-      name: document.getElementById('project-name').value,
-      purchaseOrder: document.getElementById('purchase-order').value || '',
-      partNumber: document.getElementById('part-number').value || '',
-      jobNumber: document.getElementById('job-number').value || '',
-      dueDate: document.getElementById('due-date').value || '',
-      quantity: document.getElementById('quantity').value || '',
-      notes: document.getElementById('notes').value || '',
-      assignedEmployees: Array.from(document.getElementById('project-employees').selectedOptions).map(
-        (option) => option.value
-      ) || [],
-      priority: document.getElementById('project-priority').value || 'medium',
-      status: 'Not Started',
-      clientId: document.getElementById('project-client').value || '',
-      estimatedTime: parseFloat(document.getElementById('estimated-time').value) || 0,
-      actualTime: 0
-    };
-  
-    set(ref(db, `projects/${projectData.id}`), projectData)
-      .then(() => {
-        // Don't push to local array here, let the real-time listener handle it
-        projectModal.style.display = 'none';
-        projectForm.reset();
-        console.log('Project saved successfully');
-        showNotification('Project saved successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error saving project:', error);
-        showNotification('Failed to save project. Please try again.', 'error');
-      });
-  }
-
-  // Add Employee Modal
-  addEmployeeBtn.addEventListener('click', () => {
-    employeeModal.style.display = 'block';
-  });
-  closeEmployeeModalBtn.addEventListener('click', () => {
-    employeeModal.style.display = 'none';
-    employeeForm.reset();
-  });
-
-  saveEmployeeBtn.addEventListener('click', () => {
-    const employeeName = document.getElementById('employee-name').value.trim();
-    if (employeeName) {
-      const newEmployee = { id: generateId(), name: employeeName };
-      set(ref(db, `employees/${newEmployee.id}`), newEmployee)
-        .then(() => {
-          employees.push(newEmployee);
-          renderEmployees();
-          employeeModal.style.display = 'none';
-          employeeForm.reset();
-          showNotification('Employee added successfully', 'success');
-        })
-        .catch((error) => {
-          console.error('Error adding employee:', error);
-          showNotification('Failed to add employee. Please try again.', 'error');
-        });
-    } else {
-      showNotification('Please enter a valid employee name.', 'warning');
-    }
-  });
-
-  // Operation Modal
-  closeOperationModalBtn.addEventListener('click', () => {
-    operationModal.style.display = 'none';
-    operationForm.reset();
-  });
-
-  startOperationBtn.addEventListener('click', () => {
-    const operation = document.getElementById('operation-select').value;
-    const selectedEmployeeIds = Array.from(document.getElementById('operation-employees').selectedOptions).map(
-      (option) => option.value
-    );
-    if (operation && selectedEmployeeIds.length > 0) {
-      const projectId = operationModal.getAttribute('data-project-id');
-      selectedEmployeeIds.forEach((employeeId) => {
-        startEmployeeOperation(projectId, employeeId, operation);
-      });
-      operationModal.style.display = 'none';
-      operationForm.reset();
-    } else {
-      showNotification('Please select an operation and at least one employee.', 'warning');
-    }
-  });
-
-  cancelOperationBtn.addEventListener('click', () => {
-    operationModal.style.display = 'none';
-    operationForm.reset();
-  });
-
-  function showEmployeeOperationModal(projectId) {
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      const operationModal = document.getElementById('operation-modal');
-      operationModal.style.display = 'block';
-      operationModal.setAttribute('data-project-id', projectId);
-      loadOperationsToSelect();
-      loadAssignedEmployeesToOperationSelect(project.assignedEmployees);
-    }
-  }
-
-  function loadOperationsToSelect() {
-    const operationSelect = document.getElementById('operation-select');
-    operationSelect.innerHTML = '';
-    if (Array.isArray(operations)) {
-      operations.forEach((op) => {
-        const option = document.createElement('option');
-        option.value = op;
-        option.textContent = op;
-        operationSelect.appendChild(option);
-      });
-    } else {
-      console.error('Operations is not an array:', operations);
-    }
-  }
-
-  function loadAssignedEmployeesToOperationSelect(assignedEmployeeIds = []) {
-    const operationEmployeesSelect = document.getElementById('operation-employees');
-    operationEmployeesSelect.innerHTML = '';
-
-    assignedEmployeeIds = assignedEmployeeIds.map(String);
-
-    employees.forEach((employee) => {
-      if (assignedEmployeeIds.length === 0 || assignedEmployeeIds.includes(employee.id)) {
-        const option = document.createElement('option');
-        option.value = employee.id;
-        option.textContent = employee.name;
-        operationEmployeesSelect.appendChild(option);
-      }
-    });
-
-    if (operationEmployeesSelect.options.length === 0) {
-      const defaultOption = document.createElement('option');
-      defaultOption.textContent = 'No employees available';
-      operationEmployeesSelect.appendChild(defaultOption);
-    }
-  }
-
-  // Client Modal
-  addClientBtn.addEventListener('click', () => {
-    clientModal.style.display = 'block';
-  });
-
-  closeClientModalBtn.addEventListener('click', () => {
-    clientModal.style.display = 'none';
-    clientForm.reset();
-    saveClientBtn.onclick = saveNewClient;
-  });
-
-  saveClientBtn.onclick = saveNewClient;
-
-  function saveNewClient() {
-    const clientName = document.getElementById('client-name').value.trim();
-    const clientContact = document.getElementById('client-contact').value.trim();
-    const clientPhone = document.getElementById('client-phone').value.trim();
-    const clientEmail = document.getElementById('client-email').value.trim();
-    const clientAddress = document.getElementById('client-address').value.trim();
-
-    if (clientName) {
-      const newClient = {
-        id: generateId(),
-        name: clientName,
-        contact: clientContact,
-        phone: clientPhone,
-        email: clientEmail,
-        address: clientAddress,
-      };
-      set(ref(db, `clients/${newClient.id}`), newClient)
-        .then(() => {
-          clients.push(newClient);
-          renderClients();
-          clientModal.style.display = 'none';
-          clientForm.reset();
-          showNotification('Client added successfully', 'success');
-        })
-        .catch((error) => {
-          console.error('Error adding client:', error);
-          showNotification('Failed to add client. Please try again.', 'error');
-        });
-    } else {
-      showNotification('Please enter a valid client name.', 'warning');
-    }
-  }
-
-  // Render Clients
-  function renderClients(filteredClients = null) {
-    const clientsContainer = document.getElementById('clients');
-    clientsContainer.innerHTML = '';
-
-    const clientsToRender = filteredClients || clients;
-
-    clientsToRender.forEach((client) => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <span class="client-name">${client.name}</span>
-        <div class="client-actions">
-          <button class="edit-client-btn btn-secondary">Edit</button>
-          <button class="delete-client-btn btn-danger">Delete</button>
-        </div>
-      `;
-
-      const editBtn = li.querySelector('.edit-client-btn');
-      editBtn.addEventListener('click', () => {
-        editClient(client);
-      });
-
-      const deleteBtn = li.querySelector('.delete-client-btn');
-      deleteBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to delete this client?')) {
-          deleteClient(client.id);
-        }
-      });
-
-      clientsContainer.appendChild(li);
-    });
-  }
-
-  function editClient(client) {
-    document.getElementById('client-name').value = client.name;
-    document.getElementById('client-contact').value = client.contact || '';
-    document.getElementById('client-phone').value = client.phone || '';
-    document.getElementById('client-email').value = client.email || '';
-    document.getElementById('client-address').value = client.address || '';
-
-    clientModal.style.display = 'block';
-
-    saveClientBtn.onclick = function () {
-      updateClient(client.id);
-    };
-  }
-
-  function updateClient(clientId) {
-    const updatedClient = {
-      name: document.getElementById('client-name').value,
-      contact: document.getElementById('client-contact').value,
-      phone: document.getElementById('client-phone').value,
-      email: document.getElementById('client-email').value,
-      address: document.getElementById('client-address').value
-    };
-
-    update(ref(db, `clients/${clientId}`), updatedClient)
-      .then(() => {
-        console.log('Client updated successfully');
-        clientModal.style.display = 'none';
-        loadData(); // Reload data to reflect changes
-        showNotification('Client updated successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error updating client:', error);
-        showNotification('Failed to update client. Please try again.', 'error');
-      });
-  }
-
-  function deleteClient(clientId) {
-    remove(ref(db, `clients/${clientId}`))
-      .then(() => {
-        console.log('Client deleted successfully');
-        loadData(); // Reload data to reflect changes
-        showNotification('Client deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error('Error deleting client:', error);
-        showNotification('Failed to delete client. Please try again.', 'error');
-      });
-  }
-
-  // Render Projects
-  function renderProjects(filteredProjects = null) {
-    console.log('Rendering projects');
-    const projectsContainer = document.getElementById('projects');
-    projectsContainer.innerHTML = '';
-  
-    const layoutStyle = document.getElementById('layout-select').value || 'grid';
-    if (layoutStyle === 'list') {
-      projectsContainer.classList.add('list-view');
-    } else {
-      projectsContainer.classList.remove('list-view');
-    }
-  
-    const projectsToRender = filteredProjects || projects;
-    const activeProjects = projectsToRender.filter((p) => p.status !== 'Completed');
-    const projectsByClient = groupProjectsByClient(activeProjects);
-  
-    renderProjectGroups(projectsContainer, projectsByClient, false);
-  }
-
-  // Render Completed Projects
-  function renderCompletedProjects(filteredProjects = null) {
-    const completedProjectsContainer = document.getElementById('completed-projects-container');
-    completedProjectsContainer.innerHTML = '';
-
-    const layoutStyle = document.getElementById('layout-select').value || 'grid';
-    if (layoutStyle === 'list') {
-      completedProjectsContainer.classList.add('list-view');
-    } else {
-      completedProjectsContainer.classList.remove('list-view');
-    }
-
-    const projectsToRender = filteredProjects || projects;
-    const completedProjects = projectsToRender.filter((p) => p.status === 'Completed');
-    const projectsByClient = groupProjectsByClient(completedProjects);
-
-    renderProjectGroups(completedProjectsContainer, projectsByClient, false);
-  }
-
-  // Render Admin Projects
-  function renderAdminProjects(filteredProjects = null) {
-    const adminProjectsContainer = document.getElementById('admin-projects');
-    adminProjectsContainer.innerHTML = '';
-
-    const layoutStyle = document.getElementById('layout-select').value || 'grid';
-    if (layoutStyle === 'list') {
-      adminProjectsContainer.classList.add('list-view');
-    } else {
-      adminProjectsContainer.classList.remove('list-view');
-    }
-
-    const projectsToRender = filteredProjects || projects.filter(p => p.status !== 'Completed');
-    const projectsByClient = groupProjectsByClient(projectsToRender);
-
-    renderProjectGroups(adminProjectsContainer, projectsByClient, true);
-  }
-
-  function groupProjectsByClient(projectsList) {
-    const projectsByClient = {};
-    projectsList.forEach((project) => {
-      const clientId = project.clientId || 'No Client';
-      if (!projectsByClient[clientId]) {
-        projectsByClient[clientId] = [];
-      }
-      projectsByClient[clientId].push(project);
-    });
-    return projectsByClient;
-  }
-
-  function renderProjectGroups(container, projectsByClient, isAdminView) {
-    for (const clientId in projectsByClient) {
-      const clientProjects = projectsByClient[clientId];
-      const client = clients.find((c) => c.id === clientId);
-      const clientName = client ? client.name : 'No Client';
-
-      const clientSection = document.createElement('div');
-      clientSection.classList.add('client-section');
-
-      const clientHeader = document.createElement('h3');
-      clientHeader.textContent = clientName;
-      clientSection.appendChild(clientHeader);
-
-      clientProjects.forEach((project) => {
-        const projectCard = createProjectCard(project, isAdminView);
-        clientSection.appendChild(projectCard);
-      });
-
-      container.appendChild(clientSection);
-    }
-  }
-
-  function createProjectCard(project, isAdminView) {
-    const projectCard = document.createElement('div');
-    projectCard.classList.add('project-card');
-    projectCard.setAttribute('data-project-id', project.id);
-  
-    if (project.status === 'Completed') {
-      projectCard.classList.add('completed');
-    }
-  
-    let timersHTML = '';
-    if (project.activeOperations) {
-      timersHTML = '<div class="employee-timers">';
-      for (const [employeeId, timerData] of Object.entries(project.activeOperations)) {
-        const employee = employees.find((e) => e.id === employeeId);
-        const employeeName = employee ? employee.name : 'Unknown';
-        const isPaused = timerData.isPaused;
-        timersHTML += `
-          <div class="employee-timer" data-employee-id="${employeeId}">
-            <span class="timer-display">${employeeName}: ${timerData.operation}</span>
-            <button class="pause-resume-btn btn-secondary ${isPaused ? 'paused' : ''}" data-employee-id="${employeeId}">${isPaused ? 'Resume' : 'Pause'}</button>
-            <button class="stop-employee-btn btn-secondary" data-employee-id="${employeeId}">Stop</button>
-          </div>`;
-      }
-      timersHTML += '</div>';
-    }
-
-    const client = clients.find((c) => c.id === project.clientId);
-    const clientName = client ? client.name : 'No Client Assigned';
-
-    const assignedEmployeeNames = (project.assignedEmployees || [])
-      .map((employeeId) => {
-        const employee = employees.find((e) => e.id === employeeId);
-        return employee ? employee.name : 'Unknown';
-      })
-      .join(', ');
-
-    const estimatedTimeMs = isNaN(project.estimatedTime) ? 0 : project.estimatedTime * 3600000;
-
-    projectCard.innerHTML = `
-    <div class="project-header">
-      <h3>${project.name}</h3>
-      <div class="project-timer">
-        <p><strong>Estimated Time:</strong> ${formatDuration(estimatedTimeMs)}</p>
-        ${timersHTML}
-      </div>
-    </div>
-    <div class="project-details">
-      <p><strong>Purchase Order:</strong> ${project.purchaseOrder || 'N/A'}</p>
-      <p><strong>Part Number:</strong> ${project.partNumber || 'N/A'}</p>
-      <p><strong>Job Number:</strong> ${project.jobNumber || 'N/A'}</p>
-      <p><strong>Due Date:</strong> ${project.dueDate || 'N/A'}</p>
-      <p><strong>Quantity:</strong> ${project.quantity || 'N/A'}</p>
-      <p><strong>Notes:</strong> ${project.notes || 'N/A'}</p>
-      <p><strong>Assigned Employees:</strong> ${assignedEmployeeNames || 'None'}</p>
-      <p><strong>Priority:</strong> ${project.priority || 'N/A'}</p>
-      <p><strong>Client:</strong> ${clientName}</p>
-      <p><strong>Status:</strong> ${project.status || 'N/A'}</p>
-    </div>
-    <div class="action-buttons">
-      ${project.status !== 'Completed' ? `<button class="start-employee-btn">Start Operation</button>` : ''}
-      ${project.status !== 'Completed' && !isAdminView ? `<button class="complete-btn">Mark as Completed</button>` : ''}
-      ${isAdminView ? `
-        <button class="view-details-btn">View Details</button>
-        <button class="print-btn">Print</button>
-        ${project.status !== 'Completed' ? `<button class="edit-btn">Edit</button>` : ''}
-        <button class="delete-btn">Delete</button>
-      ` : ''}
-    </div>
-  `;
-
-    // Event Listeners for Project Actions
-    const startEmployeeBtn = projectCard.querySelector('.start-employee-btn');
-    const viewDetailsBtn = projectCard.querySelector('.view-details-btn');
-    const printBtn = projectCard.querySelector('.print-btn');
-    const editBtn = projectCard.querySelector('.edit-btn');
-    const deleteBtn = projectCard.querySelector('.delete-btn');
-    const completeBtn = projectCard.querySelector('.complete-btn');
-
-    if (startEmployeeBtn) {
-      startEmployeeBtn.addEventListener('click', () => {
-        showEmployeeOperationModal(project.id);
-      });
-    }
-
-    projectCard.addEventListener('click', (event) => {
-      if (event.target.classList.contains('stop-employee-btn')) {
-        const employeeId = event.target.getAttribute('data-employee-id');
-        stopEmployeeOperation(project.id, employeeId);
-      } else if (event.target.classList.contains('pause-resume-btn')) {
-        const employeeId = event.target.getAttribute('data-employee-id');
-        pauseResumeEmployeeOperation(project.id, employeeId);
-      }
-    });
-
-    if (viewDetailsBtn) {
-      viewDetailsBtn.addEventListener('click', () => {
-        showProjectDetails(project);
-      });
-    }
-
-    if (printBtn) {
-      printBtn.addEventListener('click', () => {
-        printProjectDetails(project);
-      });
-    }
-
-    if (editBtn) {
-      editBtn.addEventListener('click', () => {
-        editProject(project);
-      });
-    }
-
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to delete this project?')) {
-          deleteProject(project.id);
-        }
-      });
-    }
-
-    if (completeBtn) {
-      completeBtn.addEventListener('click', () => {
-        completeProject(project);
-      });
-    }
-
-    return projectCard;
-  }
-
-  // Start Employee Operation Timer
-  function startEmployeeOperation(projectId, employeeId, operation) {
-    const project = projects.find((p) => p.id === projectId);
-    const employee = employees.find((e) => e.id === employeeId);
-    if (project && employee) {
-      if (!project.activeOperations) {
-        project.activeOperations = {};
-      }
-      if (!project.activeOperations[employeeId]) {
-        const logEntry = {
-          id: generateId(),
-          projectId: project.id,
-          projectName: project.name,
-          operation,
-          employeeId: employee.id,
-          employeeName: employee.name,
-          startTime: Date.now(),
-          endTime: null,
-          duration: 0,
-          pausedTime: 0,
-          pauseCount: 0,
-          pauseLog: [],
-        };
-        push(ref(db, 'workLogs'), logEntry)
-        .then((newLogRef) => {
-          const newLogId = newLogRef.key;
-          logEntry.id = newLogId;
-          project.activeOperations[employeeId] = {
-            logEntryId: newLogId,
-            operation: operation,
-            isPaused: false,
-            pauseStartTime: null,
-            timerId: null,
-          };
-      
-            project.status = 'In Progress';
-      
-            update(ref(db, `projects/${project.id}`), project)
-        .then(() => {
-          renderProjects();
-          renderAdminProjects();
-          showNotification(`${employee.name} started ${operation} on ${project.name}`, 'success');
-          
-          // Start updating the timer display
-          const timerId = setInterval(() => updateTimerDisplay(projectId, employeeId), 1000);
-          project.activeOperations[employeeId].timerId = timerId;
-        })
-        .catch((error) => {
-          console.error("Error updating project:", error);
-          showNotification('Failed to start operation. Please try again.', 'error');
-        });
-    })
-    .catch((error) => {
-      console.error("Error adding work log:", error);
-      showNotification('Failed to start operation. Please try again.', 'error');
-    });
-      }
-    }
-  }
-
-  // PAUSE / RESUME 
-  function pauseResumeEmployeeOperation(projectId, employeeId) {
-    console.log(`pauseResumeEmployeeOperation called for project ${projectId}, employee ${employeeId}`);
-    const project = projects.find((p) => p.id === projectId);
-    if (project && project.activeOperations && project.activeOperations[employeeId]) {
-      const timer = project.activeOperations[employeeId];
-      
-      get(ref(db, `workLogs/${timer.logEntryId}`)).then((snapshot) => {
-        if (snapshot.exists()) {
-          const logEntry = snapshot.val();
-          
-          if (timer.isPaused) {
-            // Resume
-            const pauseDuration = Date.now() - timer.pauseStartTime;
-            logEntry.pausedTime += pauseDuration;
-            if (logEntry.pauseLog && logEntry.pauseLog.length > 0) {
-              logEntry.pauseLog[logEntry.pauseLog.length - 1].endTime = Date.now();
-              logEntry.pauseLog[logEntry.pauseLog.length - 1].duration = pauseDuration;
-            }
-            timer.isPaused = false;
-            timer.pauseStartTime = null;
-          } else {
-            // Pause
-            timer.isPaused = true;
-            timer.pauseStartTime = Date.now();
-            logEntry.pauseCount = (logEntry.pauseCount || 0) + 1;
-            if (!Array.isArray(logEntry.pauseLog)) {
-              logEntry.pauseLog = [];
-            }
-            logEntry.pauseLog.push({
-              startTime: Date.now(),
-              endTime: null,
-              duration: 0
-            });
-          }
-  
-          Promise.all([
-            update(ref(db, `projects/${project.id}/activeOperations/${employeeId}`), timer),
-            update(ref(db, `workLogs/${timer.logEntryId}`), logEntry)
-          ]).then(() => {
-            // Update local state
-            project.activeOperations[employeeId] = timer;
-  
-            // Update the pause/resume button
-            const pauseResumeBtn = document.querySelector(
-              `.project-card[data-project-id="${projectId}"] .employee-timer[data-employee-id="${employeeId}"] .pause-resume-btn`
-            );
-            if (pauseResumeBtn) {
-              pauseResumeBtn.textContent = timer.isPaused ? 'Resume' : 'Pause';
-              pauseResumeBtn.classList.toggle('paused', timer.isPaused);
-            }
-            
-            updateTimerDisplay(projectId, employeeId);
-            showNotification(`${logEntry.employeeName} ${timer.isPaused ? 'paused' : 'resumed'} work on ${project.name}`, 'info');
-          }).catch((error) => {
-            console.error("Error updating pause state:", error);
-            showNotification('Failed to update pause state. Please try again.', 'error');
-          });
-        }
-      });
-    }
-  }
-
-  function stopEmployeeOperation(projectId, employeeId) {
-    console.log(`Stopping operation for project ${projectId}, employee ${employeeId}`);
-    const project = projects.find((p) => p.id === projectId);
-    if (project && project.activeOperations && project.activeOperations[employeeId]) {
-      const timer = project.activeOperations[employeeId];
-  
-      get(ref(db, `workLogs/${timer.logEntryId}`)).then((snapshot) => {
-        if (snapshot.exists()) {
-          const logEntry = snapshot.val();
-          logEntry.endTime = Date.now();
-          if (timer.isPaused) {
-            const finalPauseDuration = logEntry.endTime - timer.pauseStartTime;
-            logEntry.pausedTime = (logEntry.pausedTime || 0) + finalPauseDuration;
-            if (logEntry.pauseLog && logEntry.pauseLog.length > 0) {
-              logEntry.pauseLog[logEntry.pauseLog.length - 1].endTime = logEntry.endTime;
-              logEntry.pauseLog[logEntry.pauseLog.length - 1].duration = finalPauseDuration;
-            }
-          }
-          logEntry.duration = logEntry.endTime - logEntry.startTime - (logEntry.pausedTime || 0);
-  
-          Promise.all([
-            update(ref(db, `workLogs/${timer.logEntryId}`), logEntry),
-            remove(ref(db, `projects/${projectId}/activeOperations/${employeeId}`))
-          ]).then(() => {
-            updateActualProjectTime(projectId);
-            clearInterval(timer.timerId);
-            delete project.activeOperations[employeeId];
-  
-            if (Object.keys(project.activeOperations).length === 0) {
-              remove(ref(db, `projects/${projectId}/activeOperations`)).then(() => {
-                delete project.activeOperations;
-                project.status = 'Not Started';
-                update(ref(db, `projects/${projectId}`), { status: 'Not Started' }).then(() => {
-                  renderProjects();
-                  renderAdminProjects();
-                  showNotification(`Operation stopped for ${logEntry.employeeName}.`, 'info');
-                });
-              });
-            } else {
-              update(ref(db, `projects/${projectId}`), project).then(() => {
-                renderProjects();
-                renderAdminProjects();
-                showNotification(`Operation stopped for ${logEntry.employeeName}.`, 'info');
-              });
-            }
-          }).catch((error) => {
-            console.error('Error stopping employee operation:', error);
-            showNotification('Failed to stop operation. Please try again.', 'error');
-          });
-        }
-      });
-    }
-  }
-
-  function updateActualProjectTime(projectId) {
-    get(ref(db, `workLogs`)).then((snapshot) => {
-      if (snapshot.exists()) {
-        const allLogs = snapshot.val();
-        const projectLogs = Object.values(allLogs).filter(log => log.projectId === projectId);
-        const totalMinutes = projectLogs.reduce((total, log) => {
-          const logDuration = log.duration || 0;
-          return total + Math.floor(logDuration / 60000);
-        }, 0);
-        const actualHours = totalMinutes / 60;
-        update(ref(db, `projects/${projectId}`), { actualTime: actualHours });
-      }
-    });
-  }
-
-  // Helper Functions
-  function generateId() {
-    return push(ref(db)).key;
-  }
-
-  function loadEmployeesToSelect(selectElement) {
-    selectElement.innerHTML = '';
-    employees.forEach((employee) => {
-      const option = document.createElement('option');
-      option.value = employee.id;
-      option.textContent = employee.name;
-      selectElement.appendChild(option);
-    });
-  }
-
-  function loadClientsToSelect(selectElement) {
-    selectElement.innerHTML = '<option value="">Select Client</option>';
-    clients.forEach((client) => {
-      const option = document.createElement('option');
-      option.value = client.id;
-      option.textContent = client.name;
-      selectElement.appendChild(option);
-    });
-  }
-
-  function formatDuration(ms) {
-    if (typeof ms !== 'number' || isNaN(ms)) {
-      return '0h 0m 0s';
-    }
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${hours}h ${minutes}m ${seconds}s`;
-  }
-
-  // Edit Project
-  function editProject(project) {
-    loadEmployeesToSelect(document.getElementById('project-employees'));
-    loadClientsToSelect(document.getElementById('project-client'));
-
-    document.getElementById('project-name').value = project.name;
-    document.getElementById('purchase-order').value = project.purchaseOrder;
-    document.getElementById('part-number').value = project.partNumber;
-    document.getElementById('job-number').value = project.jobNumber;
-    document.getElementById('due-date').value = project.dueDate;
-    document.getElementById('quantity').value = project.quantity;
-    document.getElementById('notes').value = project.notes;
-    document.getElementById('project-priority').value = project.priority;
-    document.getElementById('project-client').value = project.clientId || '';
-    document.getElementById('estimated-time').value = project.estimatedTime || 0;
-
-    const projectEmployeesSelect = document.getElementById('project-employees');
-    Array.from(projectEmployeesSelect.options).forEach((option) => {
-      option.selected = project.assignedEmployees?.includes(option.value) || false;
-    });
-
-    projectModal.style.display = 'block';
-
-    saveProjectBtn.onclick = function () {
-      project.name = document.getElementById('project-name').value;
-      project.purchaseOrder = document.getElementById('purchase-order').value;
-      project.partNumber = document.getElementById('part-number').value;
-      project.jobNumber = document.getElementById('job-number').value;
-      project.dueDate = document.getElementById('due-date').value;
-      project.quantity = document.getElementById('quantity').value;
-      project.notes = document.getElementById('notes').value;
-      project.assignedEmployees = Array.from(projectEmployeesSelect.selectedOptions).map(
-        (option) => option.value
+}
+
+async function updateTimesheetEntry(id, type, dateString, time) {
+  try {
+    const timestamp = new Date(`${dateString} ${time}`).getTime();
+    const timesheetRef = ref(db, 'timesheets/' + id);
+    const snapshot = await get(timesheetRef);
+    if (snapshot.exists()) {
+      const timesheet = snapshot.val();
+      const entryKey = Object.keys(timesheet).find(key => 
+        timesheet[key].type === type && 
+        new Date(timesheet[key].timestamp).toDateString() === dateString
       );
-      project.priority = document.getElementById('project-priority').value;
-      project.clientId = document.getElementById('project-client').value;
-      project.estimatedTime = parseFloat(document.getElementById('estimated-time').value) || 0;
-
-      update(ref(db, `projects/${project.id}`), project)
-        .then(() => {
-          renderProjects();
-          renderCompletedProjects();
-          renderAdminProjects();
-          projectModal.style.display = 'none';
-          projectForm.reset();
-          showNotification('Project updated successfully', 'success');
-          saveProjectBtn.onclick = saveNewProject;
-        })
-        .catch((error) => {
-          console.error('Error updating project:', error);
-          showNotification('Failed to update project. Please try again.', 'error');
-        });
-    };
-  }
-
-  // Show Project Details
-  function showProjectDetails(project) {
-    const client = clients.find((c) => c.id === project.clientId);
-    const clientName = client ? client.name : 'No Client Assigned';
-
-    const assignedEmployeeNames = (project.assignedEmployees || [])
-      .map((employeeId) => {
-        const employee = employees.find((e) => e.id === employeeId);
-        return employee ? employee.name : 'Unknown';
-      })
-      .join(', ');
-
-    projectDetailsModal.style.display = 'block';
-    projectDetailsContent.innerHTML = `
-      <h2>Project Details: ${project.name}</h2>
-      <p><strong>Purchase Order:</strong> ${project.purchaseOrder || 'N/A'}</p>
-      <p><strong>Part Number:</strong> ${project.partNumber || 'N/A'}</p>
-      <p><strong>Job Number:</strong> ${project.jobNumber || 'N/A'}</p>
-      <p><strong>Due Date:</strong> ${project.dueDate || 'N/A'}</p>
-      <p><strong>Quantity:</strong> ${project.quantity || 'N/A'}</p>
-      <p><strong>Notes:</strong> ${project.notes || 'N/A'}</p>
-      <p><strong>Assigned Employees:</strong> ${assignedEmployeeNames || 'None'}</p>
-      <p><strong>Priority:</strong> ${project.priority || 'N/A'}</p>
-      <p><strong>Client:</strong> ${clientName}</p>
-      <p><strong>Status:</strong> ${project.status || 'N/A'}</p>
-      <p><strong>Estimated Time:</strong> ${formatDuration(project.estimatedTime * 3600000)}</p>
-      <p><strong>Actual Time:</strong> ${formatDuration(project.actualTime * 3600000)}</p>
-    `;
-  }
-
-  // Close Project Details Modal
-  closeProjectDetailsModalBtn.addEventListener('click', () => {
-    projectDetailsModal.style.display = 'none';
-  });
-
-  // Print Project Details
-  function printProjectDetails(project) {
-    const client = clients.find((c) => c.id === project.clientId);
-    const clientName = client ? client.name : 'No Client Assigned';
-
-    const printWindow = window.open('', '_blank');
-    const projectDetailsHTML = `
-      <html>
-      <head>
-        <title>Job Traveler: ${project.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; font-size: 16px; }
-          h1 { color: #333; font-size: 28px; margin-bottom: 20px; }
-          .job-traveler { border: 2px solid #000; padding: 30px; margin-bottom: 20px; }
-          .job-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-          .job-info p { margin: 10px 0; font-size: 18px; }
-          .notes { margin-top: 20px; }
-          .notes h2 { font-size: 22px; }
-          .notes p { font-size: 18px; line-height: 1.5; }
-          .print-buttons { margin-bottom: 20px; }
-          .print-button, .close-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-          }
-          .print-button { background-color: #4CAF50; }
-          .close-button { background-color: #f44336; }
-          @media print {
-            .print-buttons { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="print-buttons">
-          <button onclick="window.print()" class="print-button">Print</button>
-          <button onclick="window.close()" class="close-button">Close</button>
-        </div>
-        <div class="job-traveler">
-          <h1>Job Traveler: ${project.name}</h1>
-          <div class="job-info">
-            <p><strong>Purchase Order:</strong> ${project.purchaseOrder || 'N/A'}</p>
-            <p><strong>Part Number:</strong> ${project.partNumber || 'N/A'}</p>
-            <p><strong>Job Number:</strong> ${project.jobNumber || 'N/A'}</p>
-            <p><strong>Due Date:</strong> ${project.dueDate || 'N/A'}</p>
-            <p><strong>Quantity:</strong> ${project.quantity || 'N/A'}</p>
-            <p><strong>Client:</strong> ${clientName}</p>
-            <p><strong>Priority:</strong> ${project.priority || 'N/A'}</p>
-            <p><strong>Status:</strong> ${project.status || 'N/A'}</p>
-            <p><strong>Estimated Time:</strong> ${formatDuration(project.estimatedTime * 3600000)}</p>
-            <p><strong>Actual Time:</strong> ${formatDuration(project.actualTime * 3600000)}</p>
-          </div>
-          <div class="notes">
-            <h2>Notes:</h2>
-            <p>${project.notes || 'N/A'}</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    printWindow.document.write(projectDetailsHTML);
-    printWindow.document.close();
-  }
-  
-  // Complete Project
-  function completeProject(project) {
-    project.status = 'Completed';
-    update(ref(db, `projects/${project.id}`), { status: 'Completed' })
-      .then(() => {
-        renderProjects();
-        renderCompletedProjects();
-        renderAdminProjects();
-        showNotification(`Project "${project.name}" marked as Completed.`, 'success');
-      })
-      .catch(error => {
-        console.error('Error completing project:', error);
-        showNotification('Failed to complete the project. Please try again.', 'error');
-      });
-  }
-
-  // Delete Project
-  function deleteProject(projectId) {
-    remove(ref(db, `projects/${projectId}`))
-      .then(() => {
-        projects = projects.filter(p => p.id !== projectId);
-        renderProjects();
-        renderCompletedProjects();
-        renderAdminProjects();
-        showNotification('Project deleted successfully', 'success');
-      })
-      .catch(error => {
-        console.error('Error deleting project:', error);
-        showNotification('Failed to delete the project. Please try again.', 'error');
-      });
-  }
-
-  // Search functionality
-  document.getElementById('project-search-input').addEventListener('input', (e) => {
-    const searchTerm = e.target.value;
-    const filteredProjects = searchProjects(searchTerm, projects.filter(p => p.status !== 'Completed'));
-    renderProjects(filteredProjects);
-    console.log('Filtered projects:', filteredProjects); // Debug log
-  });
-  
-  document.getElementById('completed-project-search-input').addEventListener('input', (e) => {
-    const searchTerm = e.target.value;
-    const filteredProjects = searchProjects(searchTerm, projects.filter(p => p.status === 'Completed'));
-    renderCompletedProjects(filteredProjects);
-    console.log('Filtered completed projects:', filteredProjects); // Debug log
-  });
-  
-  document.getElementById('admin-project-search-input').addEventListener('input', (e) => {
-    const searchTerm = e.target.value;
-    const filteredProjects = searchProjects(searchTerm, projects.filter(p => p.status !== 'Completed'));
-    renderAdminProjects(filteredProjects);
-    console.log('Filtered admin projects:', filteredProjects); // Debug log
-  });
-
-  // Improved search function
-  function searchProjects(searchTerm, projectList) {
-    searchTerm = searchTerm.toLowerCase().trim();
-    const dateSearch = parseDate(searchTerm);
-  
-    return projectList.filter(p => {
-      try {
-        const projectDate = new Date(p.dueDate);
-        const clientName = (() => {
-          const client = clients.find(c => c.id === p.clientId);
-          return client && client.name ? client.name.toLowerCase() : '';
-        })();
-        const employeeNames = p.assignedEmployees ? p.assignedEmployees.map(empId => {
-          const employee = employees.find(e => e.id === empId);
-          return employee && employee.name ? employee.name.toLowerCase() : '';
-        }) : [];
-  
-        const match = (
-          (p.name && p.name.toLowerCase().includes(searchTerm)) ||
-          (p.purchaseOrder && p.purchaseOrder.toLowerCase().includes(searchTerm)) ||
-          (p.partNumber && p.partNumber.toLowerCase().includes(searchTerm)) ||
-          (p.jobNumber && p.jobNumber.toLowerCase().includes(searchTerm)) ||
-          (p.notes && p.notes.toLowerCase().includes(searchTerm)) ||
-          (p.priority && p.priority.toLowerCase().includes(searchTerm)) ||
-          (p.status && p.status.toLowerCase().includes(searchTerm)) ||
-          (clientName && clientName.includes(searchTerm)) ||
-          (employeeNames.some(name => name.includes(searchTerm))) ||
-          (dateSearch && isSameDay(projectDate, dateSearch)) ||
-          (searchTerm === formatDate(projectDate))
-        );
-  
-        // Debug log
-        console.log(`Project ${p.name} matches search: ${match}`);
-  
-        return match;
-      } catch (error) {
-        console.error('Error during search filter:', error);
-        return false;
-      }
-    });
-  }  
-  
-  function setupImprovedSearch() {
-    const searchInputs = [
-      document.getElementById('project-search-input'),
-      document.getElementById('completed-project-search-input'),
-      document.getElementById('admin-project-search-input')
-    ];
-
-    searchInputs.forEach(searchInput => {
-      const recentSearches = JSON.parse(localStorage.getItem(`recentSearches_${searchInput.id}`)) || [];
-
-      function addToRecentSearches(term) {
-        if (!recentSearches.includes(term)) {
-          recentSearches.unshift(term);
-          if (recentSearches.length > 5) recentSearches.pop();
-          localStorage.setItem(`recentSearches_${searchInput.id}`, JSON.stringify(recentSearches));
-        }
-      }
-
-      function getSearchSuggestions() {
-        return [...new Set([
-          ...recentSearches,
-          ...projects.map(p => p.name),
-          ...projects.map(p => p.purchaseOrder),
-          ...projects.map(p => p.partNumber),
-          ...projects.map(p => p.jobNumber),
-          ...clients.map(c => c.name),
-          ...employees.map(e => e.name),
-          ...projects.map(p => p.dueDate)
-        ])];
-      }
-
-      const datalist = document.createElement('datalist');
-      datalist.id = `${searchInput.id}-suggestions`;
-      searchInput.setAttribute('list', datalist.id);
-      searchInput.parentNode.insertBefore(datalist, searchInput.nextSibling);
-
-      searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        datalist.innerHTML = '';
-        const suggestions = getSearchSuggestions().filter(item => 
-          item.toLowerCase().includes(searchTerm)
-        );
-        suggestions.forEach(suggestion => {
-          const option = document.createElement('option');
-          option.value = suggestion;
-          datalist.appendChild(option);
-        });
-      });
-
-      searchInput.addEventListener('change', (e) => {
-        addToRecentSearches(e.target.value);
-      });
-    });
-  }
-
-  function parseDate(dateString) {
-    const parsedDate = new Date(dateString);
-    return isNaN(parsedDate.getTime()) ? null : parsedDate;
-  }
-  
-  function isSameDay(date1, date2) {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
-  }
-  
-  function formatDate(date) {
-    return date.toISOString().split('T')[0];
-  }
-
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-  
-  const debouncedSearch = debounce((searchTerm, projectList, renderFunction) => {
-    const filteredProjects = searchProjects(searchTerm, projectList);
-    renderFunction(filteredProjects);
-  }, 300);
-  
-  // Render Operations
-  function renderOperations() {
-    const operationsList = document.getElementById('operations-list');
-    operationsList.innerHTML = '';
-    if (Array.isArray(operations)) {
-      operations.forEach((operation, index) => {
-        const li = document.createElement('li');
-        li.textContent = operation;
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.classList.add('btn-danger');
-        deleteBtn.addEventListener('click', () => {
-          if (confirm('Are you sure you want to delete this operation?')) {
-            deleteOperation(index);
-          }
-        });
-        li.appendChild(deleteBtn);
-        operationsList.appendChild(li);
-      });
-    } else {
-      console.error('Operations is not an array:', operations);
-    }
-  }
-
-  function addOperation() {
-    const operationName = document.getElementById('new-operation-input').value.trim();
-    if (operationName) {
-      if (!Array.isArray(operations)) {
-        operations = [];
-      }
-      operations.push(operationName);
-      set(ref(db, 'operations'), operations)
-        .then(() => {
-          renderOperations();
-          document.getElementById('new-operation-input').value = '';
-          showNotification('Operation added successfully', 'success');
-        })
-        .catch((error) => {
-          console.error("Error adding operation:", error);
-          showNotification('Failed to add operation. Please try again.', 'error');
-        });
-    } else {
-      showNotification('Please enter a valid operation name.', 'warning');
-    }
-  }
-
-  function deleteOperation(index) {
-    operations.splice(index, 1);
-    set(ref(db, 'operations'), operations)
-      .then(() => {
-        renderOperations();
-        showNotification('Operation deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error("Error deleting operation:", error);
-        showNotification('Failed to delete operation. Please try again.', 'error');
-      });
-  }
-
-  // Add event listener for adding operations
-  document.getElementById('add-operation-btn').addEventListener('click', addOperation);
-
-  // Render Employees
-  function renderEmployees() {
-    const employeesContainer = document.getElementById('employees');
-    employeesContainer.innerHTML = '';
-  
-    employees.forEach((employee) => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <span class="employee-name">${employee.name}</span>
-        <button class="edit-btn btn-secondary">Edit</button>
-        <button class="delete-btn btn-danger">Delete</button>
-      `;
-  
-      const editBtn = li.querySelector('.edit-btn');
-      editBtn.addEventListener('click', () => editEmployee(employee));
-
-      const deleteBtn = li.querySelector('.delete-btn');
-      deleteBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to delete this employee?')) {
-          deleteEmployee(employee.id);
-        }
-      });
-
-      employeesContainer.appendChild(li);
-    });
-  }
-
-  function editEmployee(employee) {
-    document.getElementById('employee-name').value = employee.name;
-    employeeModal.style.display = 'block';
-  
-    saveEmployeeBtn.onclick = function () {
-      const updatedName = document.getElementById('employee-name').value.trim();
-      if (updatedName) {
-        update(ref(db, `employees/${employee.id}`), { name: updatedName })
-          .then(() => {
-            employee.name = updatedName;
-            renderEmployees();
-            employeeModal.style.display = 'none';
-            employeeForm.reset();
-            showNotification('Employee updated successfully', 'success');
-          })
-          .catch((error) => {
-            console.error("Error updating employee:", error);
-            showNotification('Failed to update employee. Please try again.', 'error');
-          });
+      if (entryKey) {
+        await update(ref(db, `timesheets/${id}/${entryKey}`), { timestamp });
       } else {
-        showNotification('Please enter a valid employee name.', 'warning');
+        await push(timesheetRef, { type, timestamp });
       }
-    };
-  }
-
-  function deleteEmployee(employeeId) {
-    remove(ref(db, `employees/${employeeId}`))
-      .then(() => {
-        employees = employees.filter(e => e.id !== employeeId);
-        projects.forEach((project) => {
-          project.assignedEmployees = project.assignedEmployees.filter((id) => id !== employeeId);
-          if (project.activeOperations && project.activeOperations[employeeId]) {stopEmployeeOperation(project.id, employeeId);
-          }
-          update(ref(db, `projects/${project.id}`), project);
-        });
-        get(ref(db, 'settings/defaultEmployees')).then((snapshot) => {
-          if (snapshot.exists()) {
-            const defaultEmployees = snapshot.val();
-            const updatedDefaultEmployees = defaultEmployees.filter((id) => id !== employeeId);
-            update(ref(db, 'settings'), { defaultEmployees: updatedDefaultEmployees });
-          }
-        });
-
-        renderEmployees();
-        renderProjects();
-        renderCompletedProjects();
-        renderAdminProjects();
-        showNotification('Employee deleted successfully', 'success');
-      })
-      .catch((error) => {
-        console.error("Error deleting employee:", error);
-        showNotification('Failed to delete employee. Please try again.', 'error');
-      });
-  }
-
-  // Render Work Logs
-  function renderWorkLogs() {
-    const workLogEntries = document.getElementById('work-log-entries');
-    workLogEntries.innerHTML = '';
-
-    // Group logs by project
-    const logsByProject = {};
-    workLogs.forEach(log => {
-      if (!logsByProject[log.projectId]) {
-        logsByProject[log.projectId] = [];
-      }
-      logsByProject[log.projectId].push(log);
-    });
-
-    // Render logs grouped by project
-    for (const projectId in logsByProject) {
-      const projectLogs = logsByProject[projectId];
-      const projectName = projectLogs[0].projectName;
-
-      const projectSection = document.createElement('div');
-      projectSection.classList.add('project-log-section');
-      
-      const projectHeader = document.createElement('h3');
-      projectHeader.textContent = projectName;
-      projectSection.appendChild(projectHeader);
-
-      const logTable = document.createElement('table');
-      logTable.classList.add('work-log-table');
-      logTable.innerHTML = `
-        <thead>
-          <tr>
-            <th>Operation</th>
-            <th>Employee</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Duration</th>
-            <th>Pause Count</th>
-            <th>Total Pause Time</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      `;
-
-      projectLogs.forEach((log) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${log.operation}</td>
-          <td>${log.employeeName}</td>
-          <td>${new Date(log.startTime).toLocaleString()}</td>
-          <td>${log.endTime ? new Date(log.endTime).toLocaleString() : 'In Progress'}</td>
-          <td>${formatDuration(log.duration)}</td>
-          <td>${log.pauseCount}</td>
-          <td>${formatDuration(log.pausedTime)}</td>
-          <td>
-            <button class="view-pause-log-btn btn-secondary">View Pause Log</button>
-            <button class="delete-log-btn btn-danger">Delete</button>
-          </td>
-        `;
-
-        const viewPauseLogBtn = row.querySelector('.view-pause-log-btn');
-        viewPauseLogBtn.addEventListener('click', () => {
-          showPauseLogModal(log);
-        });
-
-        const deleteLogBtn = row.querySelector('.delete-log-btn');
-        deleteLogBtn.addEventListener('click', () => {
-          if (confirm('Are you sure you want to delete this log entry?')) {
-            deleteWorkLog(log.id);
-          }
-        });
-
-        logTable.querySelector('tbody').appendChild(row);
-      });
-
-      projectSection.appendChild(logTable);
-      workLogEntries.appendChild(projectSection);
     }
+  } catch (error) {
+    console.error("Error updating timesheet entry:", error);
+    showError('Failed to update timesheet entry. Please try again.');
   }
+}
 
-  function showPauseLogModal(log) {
-    const modal = document.getElementById('pause-log-modal');
-    const modalContent = document.getElementById('pause-log-content');
-    modalContent.innerHTML = `
-      <h2>Pause Log for ${log.employeeName} - ${log.operation}</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Pause Start</th>
-            <th>Pause End</th>
-            <th>Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${log.pauseLog.map(pause => `
-            <tr>
-              <td>${new Date(pause.startTime).toLocaleString()}</td>
-              <td>${pause.endTime ? new Date(pause.endTime).toLocaleString() : 'N/A'}</td>
-              <td>${formatDuration(pause.duration)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+// UI update functions
+function updateEmployeeList(employees) {
+  const employeeList = document.getElementById('employees');
+  if (!employeeList) {
+    console.error("Employee list element not found");
+    return;
+  }
+  employeeList.innerHTML = '';
+  Object.values(employees).forEach(employee => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${employee.name}</span>`;
+    li.addEventListener('click', () => showClockInModal(employee));
+    employeeList.appendChild(li);
+  });
+}
+
+function updateEmployeeManagementList(employees) {
+  const employeeManagementList = document.getElementById('employeeManagementList');
+  if (!employeeManagementList) {
+    console.error("Employee management list element not found");
+    return;
+  }
+  employeeManagementList.innerHTML = '';
+  Object.values(employees).forEach(employee => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span>${employee.name} (${employee.id})</span>
+      <div class="employee-actions">
+        <button class="edit-button" data-id="${employee.id}">Edit</button>
+        <button class="delete-button" data-id="${employee.id}">Delete</button>
+      </div>
     `;
-    modal.style.display = 'block';
+    employeeManagementList.appendChild(li);
+  });
 
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.onclick = function() {
-      modal.style.display = 'none';
-    }
+  addEmployeeManagementListeners();
+}
 
-    window.onclick = function(event) {
-      if (event.target == modal) {
+function addEmployeeManagementListeners() {
+  document.querySelectorAll('.edit-button').forEach(button => {
+    button.addEventListener('click', () => editEmployee(button.getAttribute('data-id')));
+  });
+  document.querySelectorAll('.delete-button').forEach(button => {
+    button.addEventListener('click', () => deleteEmployee(button.getAttribute('data-id')));
+  });
+}
+
+function updateEmployeeFilter(employees) {
+  const employeeFilter = document.getElementById('employeeFilter');
+  if (!employeeFilter) {
+    console.error("Employee filter element not found");
+    return;
+  }
+  employeeFilter.innerHTML = '<option value="">All Employees</option>';
+  Object.values(employees).forEach(employee => {
+    const option = document.createElement('option');
+    option.value = employee.id;
+    option.textContent = employee.name;
+    employeeFilter.appendChild(option);
+  });
+}
+
+async function updateUI() {
+  try {
+    await displayTimesheet();
+    updateCalendar();
+    addTouchEvents();
+  } catch (error) {
+    console.error("Error updating UI:", error);
+    showError('Failed to update UI. Please refresh the page.');
+  }
+}
+
+function updateDateTime() {
+  const now = new Date();
+  const currentDateElement = document.getElementById('currentDate');
+  const currentTimeElement = document.getElementById('currentTime');
+  if (currentDateElement) {
+    currentDateElement.textContent = now.toDateString();
+  }
+  if (currentTimeElement) {
+    currentTimeElement.textContent = now.toLocaleTimeString();
+  }
+}
+
+function setDateToToday() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateFilter = document.getElementById('dateFilter');
+  if (dateFilter) {
+    dateFilter.value = `${year}-${month}-${day}`;
+    dateFilter.addEventListener('change', () => {
+      displayTimesheet();
+      updateCalendar();
+    });
+  }
+}
+
+// Modal Close Listeners
+function setupModalCloseListeners() {
+  const modals = document.querySelectorAll('.modal');
+  modals.forEach(modal => {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
         modal.style.display = 'none';
       }
-    }
-  }
-
-  // Delete Work Log Entry
-  function deleteWorkLog(logId) {
-    const workLogRef = ref(db, `workLogs/${logId}`);
-    
-    runTransaction(workLogRef, (currentData) => {
-      if (currentData === null) {
-        return; // If the data doesn't exist, abort the transaction
-      }
-      return null; // This will delete the data
-    }).then(() => {
-      console.log(`Work log with id ${logId} successfully deleted from Firebase`);
-      workLogs = workLogs.filter(log => log.id !== logId);
-      renderWorkLogs();
-      showNotification('Work log entry deleted successfully', 'success');
-    }).catch((error) => {
-      console.error("Error deleting work log:", error);
-      showNotification('Failed to delete work log. Please try again.', 'error');
     });
-  }
 
-  // Add this function to update the timer display
-  function updateTimerDisplay(projectId, employeeId) {
-    const timerDisplay = document.querySelector(
-      `.project-card[data-project-id="${projectId}"] .employee-timer[data-employee-id="${employeeId}"] .timer-display`
-    );
-    if (timerDisplay) {
-      const project = projects.find(p => p.id === projectId);
-      const timer = project.activeOperations[employeeId];
-      const employee = employees.find(e => e.id === employeeId);
-      const employeeName = employee ? employee.name : 'Unknown';
-      
-      get(ref(db, `workLogs/${timer.logEntryId}`)).then((snapshot) => {
-        if (snapshot.exists()) {
-          const logEntry = snapshot.val();
-          let elapsedTime;
-          if (timer.isPaused) {
-            elapsedTime = timer.pauseStartTime - logEntry.startTime - logEntry.pausedTime;
-          } else {
-            elapsedTime = Date.now() - logEntry.startTime - logEntry.pausedTime;
-          }
-          timerDisplay.textContent = `${employeeName} (${timer.operation}): ${formatDuration(elapsedTime)}`;
-        }
+    const closeButton = modal.querySelector('.close');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        modal.style.display = 'none';
       });
     }
-  }
-
-  // Clear All Data
-  function clearAllData() {
-    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      set(ref(db), null)
-        .then(() => {
-          console.log('All data cleared successfully');
-          projects = [];
-          employees = [];
-          operations = [];
-          workLogs = [];
-          clients = [];
-          renderProjects();
-          renderCompletedProjects();
-          renderAdminProjects();
-          renderEmployees();
-          renderWorkLogs();
-          renderClients();
-          renderOperations();
-          showNotification('All data has been cleared successfully', 'success');
-        })
-        .catch((error) => {
-          console.error('Error clearing data:', error);
-          showNotification('Failed to clear data. Please try again.', 'error');
-        });
-    }
-  }
-
-  // Add event listener to the clear data button
-  document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
-
-  // Export Data
-  function exportData() {
-    const data = {
-      projects,
-      employees,
-      operations,
-      workLogs,
-      clients
-    };
-
-    const dataStr = JSON.stringify(data);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-
-    const exportFileDefaultName = 'project_management_data.json';
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    showNotification('Data exported successfully', 'success');
-  }
-
-  // Add event listener to the export data button
-  document.getElementById('export-data-btn').addEventListener('click', exportData);
-
-  function backupLocalData() {
-    const dataToBackup = {
-      projects,
-      employees,
-      operations,
-      workLogs,
-      clients
-    };
-    localStorage.setItem('projectManagementBackup', JSON.stringify(dataToBackup));
-  }
+  });
+}
   
-  // Call this function periodically
-  setInterval(backupLocalData, 300000); // Every 5 minutes
-
-  function recoverFromLocalBackup() {
-    const backupData = localStorage.getItem('projectManagementBackup');
-    if (backupData) {
-      const parsedData = JSON.parse(backupData);
-      projects = parsedData.projects;
-      employees = parsedData.employees;
-      operations = parsedData.operations;
-      workLogs = parsedData.workLogs;
-      clients = parsedData.clients;
-      renderAll();
-      showNotification('Data recovered from local backup', 'info');
-    } else {
-      showNotification('No local backup found', 'warning');
+  // Ensure settings are loaded
+  async function ensureSettingsLoaded() {
+    const settingsRef = ref(db, 'settings');
+    const snapshot = await get(settingsRef);
+    if (!snapshot.exists()) {
+      const defaultSettings = getDefaultSettings();
+      await set(settingsRef, defaultSettings);
     }
   }
   
-  // Add a button or menu item to trigger this function when needed
-
-  // Show notification
-  function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.classList.add('notification', type);
-    notification.innerHTML = `
-      <span>${message}</span>
-      <button class="close-notification">&times;</button>
-    `;
-    document.body.appendChild(notification);
+  // Clock in/out and break functions
+  async function showClockInModal(employee) {
+    const { id } = employee;
+    activeEmployeeId = id;
+  
+    document.getElementById('employeeNameModal').textContent = `${employee.name} (${employee.id})`;
+    document.getElementById('clockInModal').style.display = 'flex';
+  
+    const timerRef = ref(db, 'timers/' + id);
+    const snapshot = await get(timerRef);
+    const timer = snapshot.val() || { mainTime: 0, breakTime: 0, isRunning: false, isOnBreak: false };
+  
+    // Reset the timer display
+    updateTimer(document.getElementById('timer'), 0);
     
-    const closeBtn = notification.querySelector('.close-notification');
-    closeBtn.addEventListener('click', () => {
-      notification.remove();
+    if (timer.isRunning) {
+      startMainInterval(id);
+      document.querySelector('.clock-circle').classList.add('red');
+      document.getElementById('clockInText').textContent = 'Clock Out';
+      document.getElementById('breakButton').style.display = 'block';
+      document.getElementById('breakButton').textContent = 'Start Break';
+    } else if (timer.isOnBreak) {
+      startBreakInterval(id);
+      document.getElementById('breakButton').textContent = 'End Break';
+      document.getElementById('breakButton').style.display = 'block';
+    } else {
+      clearInterval(currentInterval);
+      document.getElementById('breakButton').style.display = 'none';
+      document.querySelector('.clock-circle').classList.remove('red');
+      document.getElementById('clockInText').textContent = 'Clock In';
+    }
+  
+    document.querySelector('.clock-circle').onclick = () => handleClockClick(id);
+    document.getElementById('breakButton').onclick = () => handleBreakClick(id);
+  }
+  
+  async function handleClockClick(id) {
+    const timerRef = ref(db, 'timers/' + id);
+    const snapshot = await get(timerRef);
+    const timer = snapshot.val();
+  
+    if (!timer.isRunning && !timer.isOnBreak) {
+      // Clock In
+      await update(timerRef, { startTime: Date.now(), isRunning: true });
+      logTimesheet(id, 'clockin');
+      startMainInterval(id);
+      document.getElementById('breakButton').style.display = 'block';
+      document.querySelector('.clock-circle').classList.add('red');
+      document.getElementById('clockInText').textContent = 'Clock Out';
+    } else if (timer.isRunning && !timer.isOnBreak) {
+      // Clock Out
+      await stopActiveEmployeeTimer(id);
+      logTimesheet(id, 'clockout');
+      resetTimer(id);
+      document.getElementById('breakButton').style.display = 'none';
+      document.querySelector('.clock-circle').classList.remove('red');
+      document.getElementById('clockInText').textContent = 'Clock In';
+      loadEmployees();
+      displayTimesheet();
+    } else if (timer.isOnBreak) {
+      // Prevent clock out when on break
+      showError('Cannot clock out while on break. Please end the break first.');
+      return;
+    }
+    document.getElementById('clockInModal').style.display = 'none';
+  }
+  
+  async function handleBreakClick(id) {
+    const timerRef = ref(db, 'timers/' + id);
+    const snapshot = await get(timerRef);
+    const timer = snapshot.val();
+  
+    if (!timer.isOnBreak) {
+      // Start Break
+      const mainTime = timer.mainTime + Math.floor((Date.now() - timer.startTime) / 1000);
+      await update(timerRef, { mainTime, breakStartTime: Date.now(), isRunning: false, isOnBreak: true });
+      logTimesheet(id, 'startbreak');
+      document.getElementById('breakButton').textContent = 'End Break';
+      startBreakInterval(id);
+    } else {
+      // End Break
+      const breakDuration = Math.floor((Date.now() - timer.breakStartTime) / 60000); // in minutes
+      const settings = (await get(ref(db, 'settings'))).val();
+      if (breakDuration < settings.minimumBreakDuration) {
+        showError(`Break must be at least ${settings.minimumBreakDuration} minutes.`);
+        return;
+      }
+      if (breakDuration > settings.maximumBreakDuration) {
+        showError(`Break cannot exceed ${settings.maximumBreakDuration} minutes.`);
+        return;
+      }
+      const breakTime = timer.breakTime + Math.floor((Date.now() - timer.breakStartTime) / 1000);
+      await update(timerRef, { breakTime, startTime: Date.now(), isRunning: true, isOnBreak: false });
+      logTimesheet(id, 'endbreak');
+      document.getElementById('breakButton').textContent = 'Start Break';
+      startMainInterval(id);
+    }
+    document.getElementById('clockInModal').style.display = 'none';
+  }
+  
+  function startMainInterval(id) {
+    clearInterval(currentInterval);
+    currentInterval = setInterval(async () => {
+      const timerRef = ref(db, 'timers/' + id);
+      const snapshot = await get(timerRef);
+      const timer = snapshot.val();
+      const duration = Math.floor((Date.now() - timer.startTime) / 1000);
+      updateTimer(document.getElementById('timer'), timer.mainTime + duration);
+    }, 1000);
+  }
+  
+  function startBreakInterval(id) {
+    clearInterval(currentInterval);
+    currentInterval = setInterval(async () => {
+      const timerRef = ref(db, 'timers/' + id);
+      const snapshot = await get(timerRef);
+      const timer = snapshot.val();
+      const duration = Math.floor((Date.now() - timer.breakStartTime) / 1000);
+      updateTimer(document.getElementById('timer'), timer.breakTime + duration);
+    }, 1000);
+  }
+  
+  async function stopActiveEmployeeTimer(id) {
+    const timerRef = ref(db, 'timers/' + id);
+    const snapshot = await get(timerRef);
+    const timer = snapshot.val();
+    if (timer.isRunning) {
+      const mainTime = timer.mainTime + Math.floor((Date.now() - timer.startTime) / 1000);
+      await update(timerRef, { mainTime, isRunning: false });
+    } else if (timer.isOnBreak) {
+      const breakTime = timer.breakTime + Math.floor((Date.now() - timer.breakStartTime) / 1000);
+      await update(timerRef, { breakTime, isOnBreak: false });
+    }
+    clearInterval(currentInterval);
+  }
+  
+  async function resetTimer(id) {
+    const timerRef = ref(db, 'timers/' + id);
+    await set(timerRef, { mainTime: 0, breakTime: 0, startTime: null, breakStartTime: null, isRunning: false, isOnBreak: false });
+  }
+  
+  function updateTimer(element, time) {
+    if (element) {
+      element.textContent = formatTotalTime(time);
+    } else {
+      console.error("Timer element not found");
+    }
+  }
+  
+  function formatTotalTime(totalTime) {
+    const hours = String(Math.floor(totalTime / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalTime % 3600) / 60)).padStart(2, '0');
+    const seconds = String(totalTime % 60).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+  
+  function showError(message) {
+    const errorMessageElement = document.getElementById('errorMessage');
+    if (errorMessageElement) {
+      errorMessageElement.textContent = message;
+      document.getElementById('errorModal').style.display = 'flex';
+    } else {
+      console.error("Error message element not found:", message);
+    }
+  }
+  
+  function showSuccess(message) {
+    const successMessage = document.getElementById('successMessage');
+    if (successMessage) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      setTimeout(() => {
+        successMessage.style.display = 'none';
+      }, 3000);
+    } else {
+      alert(message);
+    }
+  }
+  
+  // Add a function to display today's work summary
+  async function displayTodayWorkSummary() {
+    const summaryElement = document.getElementById('todayWorkSummary');
+    if (summaryElement) {
+      const today = new Date();
+      const employeesSnapshot = await get(ref(db, 'employees'));
+      const employees = employeesSnapshot.val();
+      let totalHours = 0;
+      let totalEmployees = 0;
+  
+      for (const [id, employee] of Object.entries(employees)) {
+        const timesheetSnapshot = await get(ref(db, `timesheets/${id}`));
+        const timesheet = timesheetSnapshot.val() || {};
+        const todayEntries = Object.values(timesheet).filter(entry => 
+          new Date(entry.timestamp).toDateString() === today.toDateString()
+        );
+        if (todayEntries.length > 0) {
+          totalEmployees++;
+          const { totalWorkHours } = calculateDailyHours(todayEntries, employee.payRate, await getSettings());
+          totalHours += totalWorkHours;
+        }
+      }
+  
+      summaryElement.textContent = `Today: ${totalEmployees} employees worked, Total: ${totalHours.toFixed(2)} hours`;
+    }
+  }
+  
+  // Add a real-time clock function
+  function startRealTimeClock() {
+    const clockElement = document.getElementById('realTimeClock');
+    if (clockElement) {
+      setInterval(() => {
+        const now = new Date();
+        clockElement.textContent = now.toLocaleTimeString();
+      }, 1000);
+    }
+  }
+  
+  // Timesheet display and related functions
+  async function displayTimesheet() {
+    debug("displayTimesheet function called");
+    try {
+      const selectedDate = new Date(document.getElementById('dateFilter').value + ' 00:00:00');
+      const selectedEmployee = document.getElementById('employeeFilter').value;
+      const timesheetTableBody = document.querySelector('#timesheetTable tbody');
+      
+      if (!timesheetTableBody) {
+        throw new Error("Timesheet table body not found");
+      }
+  
+      timesheetTableBody.innerHTML = '<tr><td colspan="13">Loading...</td></tr>';
+  
+      const employeesSnapshot = await get(ref(db, 'employees'));
+      const employees = employeesSnapshot.val();
+      const filteredEmployees = selectedEmployee ? { [selectedEmployee]: employees[selectedEmployee] } : employees;
+  
+      const settingsSnapshot = await get(ref(db, 'settings'));
+      const settings = settingsSnapshot.val();
+  
+      const timeFrame = document.getElementById('timeFilter').value;
+      const dates = timeFrame === 'day' ? [selectedDate] : getWeekDates(selectedDate);
+  
+      const fragment = document.createDocumentFragment();
+  
+      for (const date of dates) {
+        for (const [id, employee] of Object.entries(filteredEmployees)) {
+          const timesheetSnapshot = await get(ref(db, `timesheets/${id}`));
+          const timesheet = timesheetSnapshot.val() || {};
+          const dailyEntries = Object.values(timesheet).filter(entry => 
+            new Date(entry.timestamp).toDateString() === date.toDateString()
+          );
+          const row = await renderTimesheetRow(employee, dailyEntries, date, settings);
+          fragment.appendChild(row);
+        }
+      }
+  
+      timesheetTableBody.innerHTML = '';
+      timesheetTableBody.appendChild(fragment);
+  
+      addAttendanceButtonListeners();
+      addEditableCellListeners();
+      checkForIncompleteTimesheets();
+  
+      debug("Timesheet displayed successfully");
+    } catch (error) {
+      console.error("Error displaying timesheet:", error);
+      showError('Failed to display timesheet. Error: ' + error.message);
+    }
+  }
+  
+  async function renderTimesheetRow(employee, timesheet, date, settings) {
+    const { totalWorkHours, totalBreakHours, regularHours, overtimeHours, dailyPay } = calculateDailyHours(timesheet, employee.payRate, settings);
+  
+    // Attendance status
+    const attendanceSnapshot = await get(ref(db, `attendance/${employee.id}/${date.toDateString()}`));
+    const attendanceStatus = attendanceSnapshot.val() || '';
+  
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${date.toDateString()}</td>
+      <td>${employee.name}</td>
+      <td>${employee.role}</td>
+      <td class="editable" data-type="clockin" data-id="${employee.id}" data-date="${date.toDateString()}">${formatTime(timesheet.find(entry => entry.type === 'clockin')?.timestamp)}</td>
+      <td class="editable" data-type="startbreak" data-id="${employee.id}" data-date="${date.toDateString()}">${formatTime(timesheet.find(entry => entry.type === 'startbreak')?.timestamp)}</td>
+      <td class="editable" data-type="endbreak" data-id="${employee.id}" data-date="${date.toDateString()}">${formatTime(timesheet.find(entry => entry.type === 'endbreak')?.timestamp)}</td>
+      <td class="editable" data-type="clockout" data-id="${employee.id}" data-date="${date.toDateString()}">${formatTime(timesheet.find(entry => entry.type === 'clockout')?.timestamp)}</td>
+      <td>${regularHours.toFixed(2)}</td>
+      <td>${overtimeHours.toFixed(2)}</td>
+      <td>${totalBreakHours.toFixed(2)}</td>
+      <td>$${dailyPay.toFixed(2)}</td>
+      <td>${attendanceStatus}</td>
+      <td>
+        <button class="attendance-button" data-id="${employee.id}" data-date="${date.toDateString()}" data-status="Called Out">Called Out</button>
+        <button class="attendance-button" data-id="${employee.id}" data-date="${date.toDateString()}" data-status="No Show">No Show</button>
+      </td>
+    `;
+    return row;
+  }
+  
+  function formatTime(timestamp) {
+    return timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  }
+  
+  function addAttendanceButtonListeners() {
+    document.querySelectorAll('.attendance-button').forEach(button => {
+      button.addEventListener('click', async function() {
+        const id = button.getAttribute('data-id');
+        const date = button.getAttribute('data-date');
+        const status = button.getAttribute('data-status');
+        await set(ref(db, `attendance/${id}/${date}`), status);
+        displayTimesheet();
+      });
     });
-
-    setTimeout(() => {
-      notification.remove();
-    }, 5000);
-  }
-
-  function validateProjectData(projectData) {
-    if (!projectData.name || projectData.name.trim() === '') {
-      throw new Error('Project name is required');
-    }
-    if (projectData.estimatedTime < 0) {
-      throw new Error('Estimated time cannot be negative');
-    }
-    // Add more validations as needed
   }
   
-  function saveNewProject() {
-    const projectName = document.getElementById('project-name').value.trim();
-    console.log("Project name entered:", projectName); // Debug log
+  function addEditableCellListeners() {
+    document.querySelectorAll('.editable').forEach(cell => {
+      cell.addEventListener('click', function () {
+        const currentValue = cell.textContent;
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.value = convertTo24HourFormat(currentValue);
+        cell.textContent = '';
+        cell.appendChild(input);
+        input.focus();
   
-    const projectData = {
-      id: generateId(),
-      name: projectName,
-      purchaseOrder: document.getElementById('purchase-order').value.trim() || '',
-      partNumber: document.getElementById('part-number').value.trim() || '',
-      jobNumber: document.getElementById('job-number').value.trim() || '',
-      dueDate: document.getElementById('due-date').value || '',
-      quantity: document.getElementById('quantity').value.trim() || '',
-      notes: document.getElementById('notes').value.trim() || '',
-      assignedEmployees: Array.from(document.getElementById('project-employees').selectedOptions).map(
-        (option) => option.value
-      ) || [],
-      priority: document.getElementById('project-priority').value || 'medium',
-      status: 'Not Started',
-      clientId: document.getElementById('project-client').value || '',
-      estimatedTime: parseFloat(document.getElementById('estimated-time').value) || 0,
-      actualTime: 0
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') {
+            input.blur();
+          }
+        });
+  
+        input.addEventListener('blur', function () {
+          const newValue = input.value;
+          if (newValue) {
+            saveInlineEdit(cell.getAttribute('data-id'), cell.getAttribute('data-type'), cell.getAttribute('data-date'), newValue);
+          }
+          cell.textContent = formatTime(convertTimeToTimestamp(newValue));
+        });
+      });
+    });
+  }
+  
+  function convertTo24HourFormat(timeString) {
+    if (!timeString) return '';
+    const date = new Date(`1970-01-01T${timeString}`);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+  
+  function convertTimeToTimestamp(time) {
+    if (!time) return null;
+    const [hours, minutes] = time.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours));
+    date.setMinutes(parseInt(minutes));
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date.getTime();
+  }
+  
+  async function saveInlineEdit(id, type, dateString, time) {
+    await updateTimesheetEntry(id, type, dateString, time);
+    displayTimesheet();
+  }
+  
+  async function checkForIncompleteTimesheets() {
+    let incompleteEntries = new Set();
+    const selectedDate = new Date(document.getElementById('dateFilter').value + ' 00:00:00');
+    const employeesSnapshot = await get(ref(db, 'employees'));
+    const employees = employeesSnapshot.val();
+  
+    for (const [id, employee] of Object.entries(employees)) {
+      const timesheetSnapshot = await get(ref(db, `timesheets/${id}`));
+      const timesheet = timesheetSnapshot.val() || {};
+      const dailyEntries = Object.values(timesheet).filter(entry => 
+        new Date(entry.timestamp).toDateString() === selectedDate.toDateString()
+      );
+  
+      const hasClockIn = dailyEntries.some(entry => entry.type === 'clockin');
+      const hasClockOut = dailyEntries.some(entry => entry.type === 'clockout');
+  
+      if ((hasClockIn && !hasClockOut) || (!hasClockIn && hasClockOut)) {
+        incompleteEntries.add(employee.name);
+      }
+    }
+  
+    const overviewContent = document.getElementById('overviewContent');
+    if (overviewContent && incompleteEntries.size > 0) {
+      const warningElement = document.createElement('div');
+      warningElement.className = 'warning-message';
+      warningElement.textContent = `Warning: Incomplete timesheets for: ${Array.from(incompleteEntries).join(', ')}`;
+      overviewContent.prepend(warningElement);
+    }
+  }
+
+  function getMonday(d) {
+    const day = d.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+    const diff = day === 0 ? -6 : 1 - day; // Adjust when day is Sunday
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff, 12, 0, 0);
+  }
+  
+  // Updated changeWeek function
+  function changeWeek(direction) {
+    const dateFilter = document.getElementById('dateFilter');
+    if (dateFilter) {
+      const currentDate = new Date(dateFilter.value + 'T12:00:00');
+      
+      // Move exactly 7 days in the specified direction
+      const targetDate = new Date(currentDate);
+      targetDate.setDate(currentDate.getDate() + (direction * 7));
+      
+      // Set the date filter to the target date
+      dateFilter.value = targetDate.toISOString().split('T')[0];
+      
+      updateCalendar();
+      displayTimesheet();
+    } else {
+      console.error("Date filter element not found");
+    }
+  }
+  
+  // Export and email functions
+  async function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    const headers = ["Date", "Employee Name", "Role", "Clock In", "Start Break", "End Break", "Clock Out", "Regular Hours", "Overtime Hours", "Break Hours", "Total Pay", "Attendance"];
+    csvContent += headers.join(",") + "\r\n";
+  
+    const rows = document.querySelectorAll('#timesheetTable tbody tr');
+    rows.forEach(row => {
+      const cols = row.querySelectorAll('td');
+      const rowData = [];
+      cols.forEach(col => {
+        rowData.push('"' + col.textContent.trim().replace(/"/g, '""') + '"');
+      });
+      csvContent += rowData.join(",") + "\r\n";
+    });
+  
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "timesheet.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  
+  async function sendWeeklyEmail() {
+    const emailAddressInput = document.getElementById('emailAddress');
+    const email = emailAddressInput ? emailAddressInput.value : '';
+    const defaultEmail = 'scprecisiondeburring@gmail.com';
+    
+    if (!email && !defaultEmail) {
+      showError('Please enter a valid email address.');
+      return;
+    }
+  
+    // Prepare the email content
+    const templateParams = {
+      to_email: email || defaultEmail,
+      message_html: await generateEmailContent()
     };
+  
+    // Send email using EmailJS
+    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
+      .then(function(response) {
+        alert('Weekly timesheet sent successfully.');
+        const emailModal = document.getElementById('emailModal');
+        if (emailModal) {
+          emailModal.style.display = 'none';
+        }
+      }, function(error) {
+        showError('Failed to send email. Please check your EmailJS configuration and try again.');
+        console.error('EmailJS Error:', error);
+      });
+  }
+  
+  async function generateEmailContent() {
+    const selectedDate = new Date(document.getElementById('dateFilter').value);
+    const startOfWeek = new Date(selectedDate);
+    const dayOfWeek = selectedDate.getDay();
+    const dayDiff = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    startOfWeek.setDate(selectedDate.getDate() + dayDiff);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+  
+    const weekRange = `${startOfWeek.toDateString()} - ${endOfWeek.toDateString()}`;
+  
+    let content = `<h1>Weekly Timesheet</h1>
+    <p>Week: ${weekRange}</p>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Employee Name</th>
+          <th>Regular Hours</th>
+          <th>Overtime Hours</th>
+          <th>Total Pay</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+    const employeesSnapshot = await get(ref(db, 'employees'));
+    const employees = employeesSnapshot.val();
+    const settingsSnapshot = await get(ref(db, 'settings'));
+    const settings = settingsSnapshot.val();
+  
+    for (const [id, employee] of Object.entries(employees)) {
+      let weeklyRegularHours = 0;
+      let weeklyOvertimeHours = 0;
+      let weeklyPay = 0;
+  
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(startOfWeek.getDate() + i);
+  
+        const timesheetSnapshot = await get(ref(db, `timesheets/${id}`));
+        const timesheet = timesheetSnapshot.val() || {};
+        const dailyEntries = Object.values(timesheet).filter(entry => 
+          new Date(entry.timestamp).toDateString() === currentDate.toDateString()
+        );
+  
+        const { regularHours, overtimeHours, dailyPay } = calculateDailyHours(dailyEntries, employee.payRate, settings);
+  
+        weeklyRegularHours += regularHours;
+        weeklyOvertimeHours += overtimeHours;
+        weeklyPay += dailyPay;
+  
+        content += `
+          <tr>
+            <td>${currentDate.toDateString()}</td>
+            <td>${employee.name}</td>
+            <td>${regularHours.toFixed(2)}</td>
+            <td>${overtimeHours.toFixed(2)}</td>
+            <td>$${dailyPay.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+  
+      content += `
+        <tr>
+          <td colspan="2"><strong>${employee.name}'s Weekly Total</strong></td>
+          <td><strong>${weeklyRegularHours.toFixed(2)} hours</strong></td>
+          <td><strong>${weeklyOvertimeHours.toFixed(2)} hours</strong></td>
+          <td><strong>$${weeklyPay.toFixed(2)}</strong></td>
+        </tr>
+      `;
+    }
+  
+    content += '</tbody></table>';
+    return content;
+  }
+  
+  function calculateDailyHours(dailyEntries, payRate, settings) {
+    let totalWorkMilliseconds = 0;
+    let totalBreakMilliseconds = 0;
+    let lastClockInTime = null;
+  
+    dailyEntries.forEach((entry, index) => {
+      if (entry.type === 'clockin') {
+        lastClockInTime = entry.timestamp;
+      }
+      if (entry.type === 'clockout' && lastClockInTime) {
+        totalWorkMilliseconds += (entry.timestamp - lastClockInTime);
+        lastClockInTime = null;
+      }
+      if (entry.type === 'startbreak' && dailyEntries[index + 1] && dailyEntries[index + 1].type === 'endbreak') {
+        totalBreakMilliseconds += (dailyEntries[index + 1].timestamp - entry.timestamp);
+      }
+    });
+  
+    const totalWorkHours = totalWorkMilliseconds / 3600000; // Convert ms to hours
+    const totalBreakHours = totalBreakMilliseconds / 3600000; // Convert ms to hours
+    let payableWorkHours = Math.max(0, totalWorkHours - totalBreakHours); // Subtract break hours from work hours
+  
+    // Overtime calculation
+    let regularHours = payableWorkHours;
+    let overtimeHours = 0;
+    if (payableWorkHours > settings.overtimeThreshold) {
+      overtimeHours = payableWorkHours - settings.overtimeThreshold;
+      regularHours = settings.overtimeThreshold;
+    }
+    const regularPay = regularHours * payRate;
+    const overtimePay = overtimeHours * payRate * settings.overtimeMultiplier;
+    const dailyPay = regularPay + overtimePay;
+  
+    return { totalWorkHours, totalBreakHours, regularHours, overtimeHours, dailyPay };
+  }
+  
+  async function generatePayDaySheet() {
+    const selectedEmployee = document.getElementById('employeeFilter').value;
+    const selectedDate = new Date(document.getElementById('dateFilter').value);
+    const timeFrame = document.getElementById('timeFilter').value;
   
     try {
-      validateProjectData(projectData);
+      const content = await generatePayDaySheetContent(selectedEmployee, selectedDate, timeFrame);
   
-      set(ref(db, `projects/${projectData.id}`), projectData)
-        .then(() => {
-          projectModal.style.display = 'none';
-          projectForm.reset();
-          console.log('Project saved successfully:', projectData);
-          showNotification('Project saved successfully', 'success');
-        })
-        .catch((error) => {
-          console.error('Error saving project:', error);
-          showNotification('Failed to save project: ' + error.message, 'error');
-        });
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write('<html><head><title>Employee Pay Stub</title>');
+      printWindow.document.write('<style>body { font-family: Arial, sans-serif; } table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } .close-button { position: fixed; top: 10px; right: 10px; padding: 10px; background-color: #f44336; color: white; border: none; cursor: pointer; }</style>');
+      printWindow.document.write('</head><body>');
+      printWindow.document.write('<button class="close-button" onclick="window.close()">Close</button>');
+      printWindow.document.write(content);
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.print();
     } catch (error) {
-      console.error('Validation error:', error);
-      showNotification('Invalid project data: ' + error.message, 'error');
+      console.error("Error generating pay day sheet:", error);
+      showError('Failed to generate pay day sheet. Error: ' + error.message);
     }
   }
   
-  // Initial renders
-  renderProjects();
-  renderCompletedProjects();
-  renderAdminProjects();
-  renderEmployees();
-  renderWorkLogs();
-  renderClients();
-  renderOperations();
-
-  // Handle offline/online events
-  window.addEventListener('online', () => {
-    showNotification('You are back online. Syncing data...', 'info');
-    loadData().then(() => {
-      showNotification('Data synced successfully', 'success');
+  async function generatePayDaySheetContent(employeeId, date, timeFrame) {
+    const employeesSnapshot = await get(ref(db, 'employees'));
+    const employees = employeesSnapshot.val();
+    const settingsSnapshot = await get(ref(db, 'settings'));
+    const settings = settingsSnapshot.val();
+  
+    let content = '<h2>Pay Day Sheet</h2>';
+  
+    // Use the provided date or the current date if not provided
+    const selectedDate = date ? new Date(date) : new Date();
+    const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    let endDate;
+  
+    if (timeFrame === 'day') {
+      endDate = new Date(startDate);
+    } else if (timeFrame === 'week') {
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+    } else {
+      throw new Error('Invalid time frame');
+    }
+  
+    if (employeeId) {
+      // Generate report for a specific employee
+      const employee = employees[employeeId];
+      if (!employee) {
+        throw new Error('Employee not found');
+      }
+      content += await generateEmployeePayDayContent(employee, startDate, endDate, settings);
+    } else {
+      // Generate report for all employees
+      for (const [id, employee] of Object.entries(employees)) {
+        content += await generateEmployeePayDayContent(employee, startDate, endDate, settings);
+      }
+    }
+  
+    return content;
+  }
+  
+  async function generateEmployeePayDayContent(employee, startDate, endDate, settings) {
+    const timesheetSnapshot = await get(ref(db, `timesheets/${employee.id}`));
+    const timesheet = timesheetSnapshot.val() || {};
+  
+    let content = `
+      <h3>${employee.name} (${employee.id})</h3>
+      <p>Period: ${startDate.toDateString()} - ${endDate.toDateString()}</p>
+      <table>
+        <tr>
+          <th>Date</th>
+          <th>Clock In</th>
+          <th>Start Break</th>
+          <th>End Break</th>
+          <th>Clock Out</th>
+          <th>Regular Hours</th>
+          <th>Overtime Hours</th>
+          <th>Break Hours</th>
+          <th>Daily Pay</th>
+        </tr>
+    `;
+  
+    let totalRegularHours = 0;
+    let totalOvertimeHours = 0;
+    let totalBreakHours = 0;
+    let totalPay = 0;
+  
+    for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+      const dailyEntries = Object.values(timesheet).filter(entry => 
+        new Date(entry.timestamp).toDateString() === currentDate.toDateString()
+      );
+  
+      let { totalWorkHours, totalBreakHours: dailyBreakHours, regularHours, overtimeHours, dailyPay } = calculateDailyHours(dailyEntries, employee.payRate, settings);
+  
+      totalRegularHours += regularHours;
+      totalOvertimeHours += overtimeHours;
+      totalBreakHours += dailyBreakHours;
+      totalPay += dailyPay;
+  
+      content += `
+        <tr>
+          <td>${currentDate.toDateString()}</td>
+          <td>${formatTime(dailyEntries.find(entry => entry.type === 'clockin')?.timestamp)}</td>
+          <td>${formatTime(dailyEntries.find(entry => entry.type === 'startbreak')?.timestamp)}</td>
+          <td>${formatTime(dailyEntries.find(entry => entry.type === 'endbreak')?.timestamp)}</td>
+          <td>${formatTime(dailyEntries.find(entry => entry.type === 'clockout')?.timestamp)}</td>
+          <td>${regularHours.toFixed(2)}</td>
+          <td>${overtimeHours.toFixed(2)}</td>
+          <td>${dailyBreakHours.toFixed(2)}</td>
+          <td>$${dailyPay.toFixed(2)}</td>
+        </tr>
+      `;
+    }
+  
+    content += `
+        <tr>
+          <th colspan="5">Totals</th>
+          <th>${totalRegularHours.toFixed(2)}</th>
+          <th>${totalOvertimeHours.toFixed(2)}</th>
+          <th>${totalBreakHours.toFixed(2)}</th>
+          <th>$${totalPay.toFixed(2)}</th>
+        </tr>
+      </table>
+    `;
+  
+    return content;
+  }
+  
+  async function editEmployee(id) {
+    const employeeRef = ref(db, 'employees/' + id);
+    const snapshot = await get(employeeRef);
+    const employee = snapshot.val();
+  
+    if (employee) {
+      document.getElementById('editEmployeeId').value = employee.id;
+      document.getElementById('editEmployeeName').value = employee.name;
+      document.getElementById('editEmployeeRole').value = employee.role;
+      document.getElementById('editEmployeePayRate').value = employee.payRate;
+  
+      document.getElementById('editEmployeeModal').style.display = 'flex';
+    } else {
+      showError('Employee not found');
+    }
+  }
+  
+  async function saveEmployeeChanges() {
+    const id = document.getElementById('editEmployeeId').value;
+    const name = document.getElementById('editEmployeeName').value;
+    const role = document.getElementById('editEmployeeRole').value;
+    const payRate = parseFloat(document.getElementById('editEmployeePayRate').value);
+  
+    if (name && role && !isNaN(payRate)) {
+      try {
+        await updateEmployee(id, name, role, payRate);
+        document.getElementById('editEmployeeModal').style.display = 'none';
+        showSuccess('Employee updated successfully');
+      } catch (error) {
+        showError('Failed to update employee: ' + error.message);
+      }
+    } else {
+      showError('Please fill all fields correctly');
+    }
+  }
+  
+  // Add touch events
+  function addTouchEvents() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+      button.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        this.click();
+      });
     });
-  });
+  
+    const editableCells = document.querySelectorAll('.editable');
+    editableCells.forEach(cell => {
+      cell.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        this.click();
+      });
+    });
+  }
+  
+  // Update calendar
+  function updateCalendar() {
+    const customCalendar = document.getElementById('customCalendar');
+    if (!customCalendar) {
+      console.error("Custom calendar element not found");
+      return;
+    }
+    customCalendar.innerHTML = '';
+    const selectedDate = new Date(document.getElementById('dateFilter').value + 'T12:00:00');
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  
+    // Calculate the Monday of the current week
+    const startOfWeek = new Date(selectedDate);
+    startOfWeek.setDate(selectedDate.getDate() - (selectedDate.getDay() === 0 ? 6 : selectedDate.getDay() - 1));
+  
+    // Update the date range display
+    const dateRangeElement = document.getElementById('dateRange');
+    if (dateRangeElement) {
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      dateRangeElement.textContent = `${startOfWeek.toDateString()} - ${endOfWeek.toDateString()}`;
+    }
+  
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+  
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + i);
+      const day = dayDate.getDate();
+      const month = dayDate.getMonth() + 1;
+      const dayOfWeek = daysOfWeek[i];
+  
+      const dayElement = document.createElement('div');
+      dayElement.className = 'day';
+      dayElement.innerHTML = `
+        ${dayOfWeek} <div class="date">${month}/${day}</div>
+        <div class="dot"></div>
+      `;
+  
+      // Highlight the current day
+      if (dayDate.toDateString() === today.toDateString()) {
+        dayElement.classList.add('active');
+      }
+  
+      // Highlight the selected date
+      if (dayDate.toDateString() === selectedDate.toDateString()) {
+        dayElement.classList.add('selected');
+      }
+  
+      dayElement.addEventListener('click', () => {
+        const dateFilter = document.getElementById('dateFilter');
+        if (dateFilter) {
+          dateFilter.value = dayDate.toISOString().split('T')[0];
+          updateCalendar();
+          displayTimesheet();
+        } else {
+          console.error("Date filter element not found");
+        }
+      });
+  
+      customCalendar.appendChild(dayElement);
+    }
+  }
+  
+  // Helper function to get week dates
+  function getWeekDates(date) {
+    const start = new Date(date);
+    start.setDate(start.getDate() - start.getDay() + (start.getDay() === 0 ? -6 : 1));
+    const result = [new Date(start)];
+    for (let i = 1; i < 7; i++) {
+      const next = new Date(start);
+      next.setDate(start.getDate() + i);
+      result.push(next);
+    }
+    return result;
+  }
+  
+  // Global function definitions
+  window.openNav = function() { 
+    const nav = document.getElementById("myNav");
+    if (nav) {
+      nav.style.width = "100%";
+    } else {
+      console.error("Navigation element not found");
+    }
+  };
+  
+  window.closeNav = function() { 
+    const nav = document.getElementById("myNav");
+    if (nav) {
+      nav.style.width = "0%";
+    } else {
+      console.error("Navigation element not found");
+    }
+  };
 
-  window.addEventListener('offline', () => {
-    showNotification('You are offline. Some features may be limited.', 'warning');
-  });
-
-  // Implement periodic data sync (every 5 minutes)
-  setInterval(() => {
-    if (navigator.onLine) {
-      loadData().then(() => {
-        console.log('Data synced successfully');
+  window.checkPassword = function() {
+    debug("checkPassword function called");
+    const passwordInput = document.getElementById('passwordInput');
+    if (!passwordInput) {
+      console.error("Password input element not found");
+      return;
+    }
+    const pin = passwordInput.value;
+    debug("Entered PIN:", pin);
+    const settingsRef = ref(db, 'settings');
+    get(settingsRef).then((snapshot) => {
+      debug("Settings snapshot received");
+      if (snapshot.exists()) {
+        const settings = snapshot.val();
+        debug("Settings:", settings);
+        if (pin === settings.adminPIN) {
+          debug("PIN correct, hiding password modal");
+          const passwordModal = document.getElementById('passwordModal');
+          if (passwordModal) {
+            passwordModal.style.display = 'none';
+          } else {
+            console.error("Password modal element not found");
+          }
+          debug("Calling showOverview");
+          window.showOverview();
+        } else {
+          debug("Incorrect PIN");
+          showError('Incorrect PIN. Please try again.');
+        }
+      } else {
+        debug("Settings not found");
+        showError('Settings not found. Please try again.');
+      }
+    }).catch((error) => {
+      console.error("Error checking password:", error);
+      showError('An error occurred. Please try again.');
+    });
+  };
+  
+  window.showOverview = async function() {
+    debug("showOverview function called");
+    try {
+      debug("Setting date to today");
+      setDateToToday();
+      debug("Hiding other content, showing overview content");
+      const elements = {
+        dashboardContent: 'none',
+        employeeManagementContent: 'none',
+        overviewContent: 'block',
+        settingsContent: 'none',
+        dateTime: 'none',
+        addEmployeeButton: 'none'
+      };
+      for (const [id, display] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.style.display = display;
+        } else {
+          console.error(`Element not found: ${id}`);
+        }
+      }
+      debug("Closing nav");
+      window.closeNav();
+      debug("Displaying timesheet");
+      await displayTimesheet();
+      debug("Updating calendar");
+      updateCalendar();
+      debug('Overview displayed successfully');
+    } catch (error) {
+      console.error('Error displaying overview:', error);
+      showError('Failed to display overview. Please try again.');
+    }
+  };
+  
+  window.showDashboard = function() {
+    const elements = {
+      dashboardContent: 'block',
+      employeeManagementContent: 'none',
+      overviewContent: 'none',
+      settingsContent: 'none',
+      dateTime: 'block',
+      addEmployeeButton: 'none'
+    };
+    for (const [id, display] of Object.entries(elements)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.style.display = display;
+      } else {
+        console.error(`Element not found: ${id}`);
+      }
+    }
+    window.closeNav();
+  };
+  
+  window.showEmployeeManagement = function() {
+    const elements = {
+      dashboardContent: 'none',
+      employeeManagementContent: 'block',
+      overviewContent: 'none',
+      settingsContent: 'none',
+      dateTime: 'none',
+      addEmployeeButton: 'block'
+    };
+    for (const [id, display] of Object.entries(elements)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.style.display = display;
+      } else {
+        console.error(`Element not found: ${id}`);
+      }
+    }
+    window.closeNav();
+  };
+  
+  window.showPasswordModal = function() {
+    const passwordModal = document.getElementById('passwordModal');
+    if (passwordModal) {
+      passwordModal.style.display = 'flex';
+    } else {
+      console.error("Password modal element not found");
+    }
+    window.closeNav();
+  };
+  
+  window.showSettings = function() {
+    const elements = {
+      dashboardContent: 'none',
+      employeeManagementContent: 'none',
+      overviewContent: 'none',
+      settingsContent: 'block',
+      dateTime: 'none',
+      addEmployeeButton: 'none'
+    };
+    for (const [id, display] of Object.entries(elements)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.style.display = display;
+      } else {
+        console.error(`Element not found: ${id}`);
+      }
+    }
+    window.closeNav();
+    loadSettings();
+  };
+  
+  window.closeDetailedViewModal = function() {
+    const detailedViewModal = document.getElementById('detailedViewModal');
+    if (detailedViewModal) {
+      detailedViewModal.style.display = 'none';
+    } else {
+      console.error("Detailed view modal element not found");
+    }
+  };
+  
+  window.closeErrorModal = function() {
+    const errorModal = document.getElementById('errorModal');
+    if (errorModal) {
+      errorModal.style.display = 'none';
+    } else {
+      console.error("Error modal element not found");
+    }
+  };
+  
+  window.exportToCSV = exportToCSV;
+  window.sendWeeklyEmail = sendWeeklyEmail;
+  window.generatePayDaySheet = generatePayDaySheet;
+  window.showEmployeePerformance = showEmployeePerformance;
+  window.resetSettings = resetSettings;
+  window.saveSettings = saveSettings;
+  window.showAddEmployeeModal = showAddEmployeeModal;
+  window.addEmployee = addEmployee;
+  window.editEmployee = editEmployee;
+  window.saveEmployeeChanges = saveEmployeeChanges;
+  
+  function closeReportModal() {
+    const reportModal = document.getElementById('reportModal');
+    if (reportModal) {
+      reportModal.style.display = 'none';
+    }
+  }
+  
+  // Add this function for employee performance
+  async function showEmployeePerformance() {
+    debug("Showing employee performance dashboard");
+    try {
+      const performanceDashboardContent = document.getElementById('performanceDashboardContent');
+      if (performanceDashboardContent) {
+        performanceDashboardContent.style.display = 'block';
+      }
+  
+      // Hide other content
+      ['dashboardContent', 'employeeManagementContent', 'overviewContent', 'settingsContent'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.style.display = 'none';
+      });
+  
+      const employeesSnapshot = await get(ref(db, 'employees'));
+      const employees = employeesSnapshot.val();
+      const performanceData = await calculateEmployeePerformance(employees);
+      displayPerformanceChart(performanceData);
+    } catch (error) {
+      console.error("Error showing employee performance:", error);
+      showError('Failed to show employee performance. Error: ' + error.message);
+    }
+  }
+  
+  async function calculateEmployeePerformance(employees) {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const performanceData = [];
+    for (const [id, employee] of Object.entries(employees)) {
+      const timesheetSnapshot = await get(ref(db, `timesheets/${id}`));
+      const timesheet = timesheetSnapshot.val() || {};
+      const recentEntries = Object.values(timesheet).filter(entry => 
+        new Date(entry.timestamp) >= oneMonthAgo
+      );
+      
+      const totalHours = recentEntries.reduce((total, entry) => {
+        if (entry.type === 'clockout') {
+          const clockIn = recentEntries.find(e => e.type === 'clockin' && e.timestamp < entry.timestamp);
+          if (clockIn) {
+            return total + (entry.timestamp - clockIn.timestamp) / 3600000; // Convert ms to hours
+          }
+        }
+        return total;
+      }, 0);
+      
+      performanceData.push({
+        name: employee.name,
+        hoursWorked: totalHours
       });
     }
-  }, 300000); // 5 minutes in milliseconds
+    
+    return performanceData;
+  }
+  
+  function displayPerformanceChart(performanceData) {
+    // Get the canvas element where the chart will be drawn
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    // If there's an existing chart, destroy it to prevent conflicts
+    if (performanceChart) {
+      performanceChart.destroy();
+    }
+  
+    // Create a new bar chart
+    performanceChart = new Chart(ctx, {
+      type: 'bar',  // Specify that it's a bar chart
+      data: {
+        // Use employee names as labels on the x-axis
+        labels: performanceData.map(d => d.name),
+        datasets: [{
+          label: 'Hours Worked (Last 30 Days)',
+          // Use the hours worked as the data for the bars
+          data: performanceData.map(d => d.hoursWorked),
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',  // Color of the bars
+          borderColor: 'rgba(75, 192, 192, 1)',        // Border color of the bars
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,  // Start the y-axis at 0
+            title: {
+              display: true,
+              text: 'Hours'     // Label for the y-axis
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Add this function to reset settings
+  async function resetSettings() {
+    try {
+      const defaultSettings = getDefaultSettings();
+      const settingsRef = ref(db, 'settings');
+      await set(settingsRef, defaultSettings);
+      applySettingsToUI(defaultSettings);
+      showSuccess('Settings reset to default values.');
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+      showError('Failed to reset settings. Error: ' + error.message);
+    }
+  }
+  
+  // Initialize the application
+  document.addEventListener('DOMContentLoaded', initializeTimesheetApp);
+  
+  // Export functions to make them accessible globally
+  window.openNav = openNav;
+  window.closeNav = closeNav;
+  window.checkPassword = checkPassword;
+  window.showOverview = showOverview;
+  window.showDashboard = showDashboard;
+  window.showEmployeeManagement = showEmployeeManagement;
+  window.showPasswordModal = showPasswordModal;
+  window.showSettings = showSettings;
+  window.closeDetailedViewModal = closeDetailedViewModal;
+  window.closeErrorModal = closeErrorModal;
+  window.exportToCSV = exportToCSV;
+  window.sendWeeklyEmail = sendWeeklyEmail;
+  window.generatePayDaySheet = generatePayDaySheet;
+  window.showEmployeePerformance = showEmployeePerformance;
+  window.resetSettings = resetSettings;
+  window.saveSettings = saveSettings;
+  window.showAddEmployeeModal = showAddEmployeeModal;
+  window.addEmployee = addEmployee;
+  window.editEmployee = editEmployee;
+  window.saveEmployeeChanges = saveEmployeeChanges;
+  window.closeAddEmployeeModal = function() {
+    document.getElementById('addEmployeeModal').style.display = 'none';
+  };
+  window.closePasswordModal = function() {
+    document.getElementById('passwordModal').style.display = 'none';
+  };
+  window.closeEditEmployeeModal = function() {
+    document.getElementById('editEmployeeModal').style.display = 'none';
+  };
+  window.closeEditTimesheetModal = function() {
+    document.getElementById('editTimesheetModal').style.display = 'none';
+  };
+  window.closeEmailModal = function() {
+    document.getElementById('emailModal').style.display = 'none';
+  };
+  window.closeReportModal = closeReportModal;
+  
+  // Add event listeners for the Enter key on input fields
+  document.getElementById('addEmployeeName').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addEmployee();
+    }
+  });
+  
+  document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.checkPassword();
+    }
+  });
+  
+ // Updated event listeners for the week navigation buttons
+document.addEventListener('DOMContentLoaded', function() {
+  const prevWeekButton = document.getElementById('prevWeekButton');
+  const nextWeekButton = document.getElementById('nextWeekButton');
 
-}); // End of DOMContentLoaded event listener
+  if (prevWeekButton) {
+    prevWeekButton.addEventListener('click', () => changeWeek(-1));
+  } else {
+    console.error("Previous week button not found");
+  }
 
+  if (nextWeekButton) {
+    nextWeekButton.addEventListener('click', () => changeWeek(1));
+  } else {
+    console.error("Next week button not found");
+  }
+});
